@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Combat Simulator</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f4f1ea; --panel:#fffdf8; --text:#241c2c; --sub:#6b5f78;
+  --accent:#7a3b8f; --accent2:#b8863f; --good:#3f8f5f; --bad:#c1425a; --line:#ddd3e5;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151020; --panel:#1e1830; --text:#efe8f7; --sub:#a596b8;
+    --accent:#c99bdb; --accent2:#e0b878; --good:#6fd08f; --bad:#f07a90; --line:#382c4a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151020; --panel:#1e1830; --text:#efe8f7; --sub:#a596b8;
+  --accent:#c99bdb; --accent2:#e0b878; --good:#6fd08f; --bad:#f07a90; --line:#382c4a;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,'Iowan Old Style',serif;padding:16px;max-width:900px;margin:0 auto;}
+h1{font-size:1.4rem;margin:.2em 0;color:var(--accent);}
+h2{font-size:1.05rem;margin:1.2em 0 .4em;color:var(--accent2);border-bottom:1px solid var(--line);padding-bottom:.2em;}
+.sub{color:var(--sub);font-size:.85rem;margin-bottom:1em;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.col{flex:1 1 260px;min-width:0;}
+select,input,button{font-family:inherit;font-size:.95rem;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);width:100%;}
+button{background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:bold;width:auto;padding:8px 14px;}
+button.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+button:active{opacity:.8;}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:.78rem;margin-top:8px;}
+.statgrid div span{color:var(--sub);}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:2px;}
+.bar>i{display:block;height:100%;background:var(--good);}
+.bar.mp>i{display:block;height:100%;background:var(--accent);}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;overflow-x:auto;display:block;}
+th,td{padding:5px 6px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;}
+tr.hl td{background:var(--accent);color:#fff;}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:.75rem;background:var(--line);}
+.dmg{color:var(--bad);font-weight:bold;}
+.dealt{color:var(--good);font-weight:bold;}
+details summary{cursor:pointer;color:var(--accent2);font-size:.85rem;}
+#customResult{margin-top:8px;font-size:.9rem;}
+.swapBtn{text-align:center;margin:4px 0;}
+label{font-size:.78rem;color:var(--sub);display:block;margin-top:6px;}
+footer{text-align:center;color:var(--sub);font-size:.75rem;margin:2em 0 1em;}
+small.note{color:var(--sub);font-size:.72rem;}
+.faction{font-size:.75rem;color:var(--sub);margin:-4px 0 4px;}
+</style>
+</head>
+<body>
+<h1>⚔️ Combat Simulator</h1>
+<div class="sub">Re:Zero-verse stat block edition — both fighters now choose an action.</div>
+<div id="app"></div>
+<footer>Homebrew d20 outcome bands layered on top of your stat-block formulas — see "How this is calculated" below the results table.</footer>
+<script>
+const clamp=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
+const rnd=v=>Math.round(v);
+const fmt=v=>Math.round(v).toLocaleString();
+
+const spellsRaw=[
+["Goa","Fire",4,3],["El Goa","Fire",7,6],["Ul Goa","Fire",10,10],["Al Goa","Fire",15,16],
+["Ice Brand Arts","Fire",5,4],
+["Huma","Water",3,3],["El Huma","Water",6,6],["Ul Huma","Water",9,10],["Al Huma","Water",13,15],
+["Healing Magic","Water",0,5],
+["Fura","Wind",4,3],["El Fura","Wind",7,6],["Ul Fura","Wind",10,10],["Al Fura","Wind",14,15],
+["Dona","Earth",5,3],["El Dona","Earth",8,6],["Ul Dona","Earth",11,10],["Al Dona","Earth",16,16],
+["Shamak","Yin",2,4],["Minya","Yin",9,8],["Ol Shamak","Yin",12,18],
+["Jiwald","Yang",6,5],["Akra","Yang",0,6],
+["Al Shario","Yin",20,25]
+].map(s=>({name:s[0],el:s[1],pow:s[2],mp:s[3]})); // mult on Magical Strength = pow/4
+
+// [name, str, magStr, fort, agi, int, will, cha, wp, manaTalent, manaMastery, faction]
+const charsRaw=[
+["Reinhard van Astrea",911828.7,0,911828.7,411828.7,80,100,100,100,0,0,"Kingdom of Lugnica / Astrea"],
+["Satella (Witch of Envy)",112188.7,100000,0,59997.8,100,100,50,0,39,0,"Witch Cult (Original)"],
+["Reid Astrea (Prime)",257618.6,0,20000,76186,70,99,40,100,0,0,"Astrea Household"],
+["Volcanica (Prime)",39997.8,45000,500000,4598,80,69,40,0,40,100,"Volcanica"],
+["Cecilus Segmunt",27760.2,0,9000,577602,50,99,60,87,0,50,"Vollachian Empire"],
+["Regulus Corneas",59.7,0,12500,659.7,50,80,70,0,0,0,"Witch Cult"],
+["Sekhmet (Witch of Sloth)",4601.1,3500,1200,1.1,50,40,40,0,0,0,"Witch Cult (Original)"],
+["Ram (Full Potential)",9276.9,12000,4000,71300,65,70,80,70,30,78,"Roswaal Household"],
+["Pandora (Witch of Vainglory)",2126.6,0,42,226.6,90,90,60,0,0,0,"Witch Cult (Original)"],
+["Shaula",3103.9,6500,6000,8464.9,60,100,80,0,20,84,"Sage's Tower"],
+["Sphinx",94.1,8800,94.1,94.1,90,77,60,0,38,93,"Witch Cult"],
+["Hector",649.2,11000,0,649.2,64,79,40,0,0,0,"Witch Cult"],
+["Puck (True Form)",10098.3,10500,50000,477.5,80,60,80,0,30,80,"Great Spirits"],
+["Roswaal L. Mathers",3086.8,9200,0,986.8,85,70,80,0,36,87,"Mathers Household"],
+["Theresia van Astrea (Prime)",7243.2,0,8875.4,7243.2,70,80,70,99,0,0,"Astrea Household"],
+["Arakiya",5052.3,6000,8465.9,15052.3,57,30,30,40,27,74,"Vollachian Empire"],
+["Olbart Dunkelkenn",2353,0,1009.7,23523.9,55,60,70,80,30,77,"Vollachian Empire"],
+["Typhon (Witch of Pride)",695.3,0,95.3,695.3,40,70,60,0,0,0,"Witch Cult"],
+["Echidna (Witch of Greed)",478.6,8000,78.6,478.6,100,90,70,0,40,100,"Witch Cult (Original)"],
+["Capella Emerada Lugunica",1195.6,0,8597.8,15394.25,30,50,60,0,0,0,"Witch Cult"],
+["Yorna Mishigure",235,4000,265,235,84,85,80,0,17,37,"Vollachian Empire"],
+["Daphne (Witch of Gluttony)",230.5,0,230.5,230.5,43,90,30,0,0,0,"Witch Cult"],
+["Moguro Hagane",856,6000,15000,557.2,45,40,40,0,20,67,"Vollachian Empire"],
+["Minerva (Witch of Wrath)",851.5,0,851.5,221.5,40,69,70,0,0,0,"Witch Cult"],
+["Carmilla (Witch of Lust)",217,0,17,217,40,30,99,0,0,0,"Witch Cult"],
+["Hallibel",7000,7000,10000,50000,85,80,70,93,38,83,"Vollachia (the Admirier)"],
+["Ley Batenkaitos",5334.8,4500,1400,3034.8,65,50,30,43,20,50,"Witch Cult"],
+["Roy Alphard",6196.8,5000,3038,4069.2,70,50,30,90,22,52,"Witch Cult"],
+["Louis Arneb",32.8,42.4,80,32.8,80,80,70,20,25,59,"Witch Cult"],
+["Stride Vollachia (former)",94.9,0,31.9,31.9,65,0,80,0,0,0,"Vollachian Empire"],
+["Kafma Irulux",2093.9,1200,12500,2065.7,60,60,50,86,14,36,"Independent"],
+["Madelyn Eschart",2264.6,2600,5993,1493,40,70,70,0,10,20,"Vollachian Empire"],
+["Priscilla Barielle",1092,3200,2229,1029,80,90,80,80,10,20,"Barielle Household"],
+["Julius Juukulius (Peak)",62.3,2900,1828.1,891.1,76,70,70,85,0,0,"Juukulius Household"],
+["Emilia (Peak Potential)",4027.1,7200,8007.1,1027.1,50,80,50,60,15,33,"Kingdom of Lugnica"],
+["Beatrice (Full Mana)",26.2,9900,59.9,26.2,85,90,60,35,37,89,"Roswaal Household"],
+["Garfiel Tinsel",2388.2,100,1088.2,3058.9,55,90,70,60,0,0,"Sanctuary"],
+["Elsa Granhiert",2687.3,0,16057.7,6187.3,65,99,80,83,0,0,"Independent"],
+["Sirius Romanée-conti",23.3,2000,8023.3,123.3,40,50,90,0,0,0,"Witch Cult"],
+["Balleroy Temeglyph (former)",160.8,2400,626.9,189.9,65,79,60,94,20,0,"Kingdom of Lugnica"],
+["Goz Ralfon",2089.4,0,1289.4,326.4,65,50,50,78,0,0,"Vollachian Empire"],
+["Groovy Gumlet",1188.9,0,825.9,659.7,40,50,50,60,0,0,"Vollachian Empire"],
+["Chisha Gold",559.1,0,925.4,188.4,75,70,90,44,0,0,"Vollachian Empire"],
+["Wilhelm van Astrea",1787.9,0,1758.5,1487.9,75,85,60,86,0,0,"Karsten Household"],
+["Clind",24.4,2400,1524.4,887.4,80,70,70,89,35,85,"Barielle Household"],
+["Fortuna",23.9,800,823.9,223.9,60,79,70,0,25,33,"Independent"],
+["Natsuki Subaru",23.4,5,523.4,623.4,70,99,80,54,15,21,"Emilia Camp"],
+["Petelgeuse Romanée-conti",52.9,1200,1022.9,122.9,30,10,40,0,0,0,"Witch Cult"],
+["Rem (Horned Peak)",1885.4,1400,2085.4,1655.5,68,70,70,76,10,49,"Roswaal Household"],
+["Crusch Karsten (Prime)",1585,850,1422,1285,70,70,80,73,0,0,"Karsten Household"],
+["Al (Aldebaran)",21.5,5,1121.5,154.4,95,100,70,93,30,95,"Priscilla Camp"],
+["Frederica Baumann",1184,0,1884,753.8,70,70,70,22,0,0,"Roswaal Household"],
+["Felt (Post-development)",53.2,0,320.5,1083.5,30,40,40,28,0,0,"Kingdom of Lugnica"],
+["Ricardo Welkin",1183,0,1783,652.6,50,70,30,46,0,0,"Iron Fang"],
+["Meili Portroute",19.5,0,19.5,19.5,30,70,50,0,0,0,"Witch Cult (Affiliate)"],
+["Felix (Ferris) Argyle",1003.5,3500,3.5,70,80,70,40,0,28,78,"Karsten Household"],
+["Mimi Pearlbaton",59.7,450,6.9,97,15,60,40,0,12,0,"Iron Fang"],
+["Mizelda",79.6,0,689.8,96,50,60,40,55,0,0,"Shudrak Tribe"],
+["Taritta",89.4,0,600,94,50,60,40,59,0,0,"Shudrak Tribe"],
+["Todd Fang",503,0,603,486.5,65,90,70,79,0,0,"Vollachian Empire"],
+["Jamal Aurélie",809.2,0,92,604,65,70,40,72,0,0,"Vollachian Empire"],
+["Zikr Osman",109.1,0,91,280,70,70,50,33,0,0,"Vollachian Empire"],
+["Otto Suwen",52.7,180,27,302.7,93,70,80,0,0,0,"Emilia Camp"],
+["Hetaro Pearlbaton",78.9,0,89,60,0,70,40,0,0,0,"Iron Fang"],
+["Tivey Pearlbaton",85.8,0,88,20.5,61,50,40,0,0,0,"Iron Fang"],
+["Serena Dracroy",72.4,0,24,50.7,40,50,30,77,0,0,"Independent"],
+["Rom (Cromwell)",90,0,90,6.1,91,70,70,56,0,0,"Ferris Tribe"],
+["Joshua Juukulius",18.8,0,25,5.9,20,60,60,0,0,0,"Juukulius Household"],
+["Medium O'connell",108.7,0,187,205.7,25,80,80,0,0,0,"Independent"],
+["Ryuzu Meyer / Clones",22,300,22,2.2,38,70,40,0,0,0,"Sanctuary"],
+["Echidna (Fox / Artificial Spirit)",40,0,4,4,50,70,30,0,20,0,"Roswaal Household"],
+["Petra Leyte",40,0,4,4,67,80,60,0,10,0,"Sanctuary"],
+["Annerose Miload",30,0,3,3,10,70,30,0,0,0,"Kingdom of Lugnica"],
+["Schult",30,0,3,3,60,70,50,0,0,0,"Barielle Household"],
+["Fourier Lugunica",30,0,3,3,50,70,30,0,0,0,"Kingdom of Lugnica"],
+["Kadomon Risch",30,0,3,3,43,70,30,0,0,0,"Kingdom of Lugnica"],
+["Damel",30,0,3,3,40,70,30,0,0,0,"Kingdom of Lugnica"],
+["Berstetz Fondalfon",30,0,3,3,30,70,30,0,0,0,"Kingdom of Lugnica"],
+["Vincent Vollachia",300,0,3,3,87,80,80,49,0,0,"Vollachian Empire"],
+["Flop O'connell",30,0,3,3,35,80,70,0,0,0,"Independent"],
+["Utakata / Holly / Tanza",300,0,3,3,58,70,50,0,0,0,"Shudrak / Chaosflame"]
+];
+function mkChar(a){
+  const c={name:a[0],str:+a[1],magStr:+a[2],fort:+a[3],agi:+a[4],int:+a[5],will:+a[6],cha:+a[7],wp:+a[8],mt:+a[9],mm:+a[10],faction:a[11]||"Player"};
+  c.maxHp=rnd(220+c.fort); c.curHp=c.maxHp; c.curMp=c.mm; return c;
+}
+const state={chars:charsRaw.map(mkChar),atkIdx:46,defIdx:43,spellIdx:-1,defSpellIdx:-1,factionFilter:"all",lastRoll:null,lastBands:null};
+
+function totalStats(c){return c.str+c.magStr+c.fort+c.agi+c.int+c.will+c.cha;}
+function power(c){return Math.floor(Math.max(totalStats(c)-40,0)/15);}
+function fortMult(fort){return clamp(0.35+0.65*65/(65+Math.sqrt(Math.max(fort,0))),0.35,1);}
+function wpScale(wp){return clamp(0.5+0.015*(wp||0),0.5,2.0);}
+
+function bands(a,d,spell,defSpell){
+  const pAtk=power(a), pDef=power(d);
+  const pdiff=Math.log10(pAtk+2)-Math.log10(pDef+2);
+  const agiDiff=Math.log10((d.agi||0)+2)-Math.log10((a.agi||0)+2);
+  const defMult=defSpell?((defSpell.pow/4)||0.3):0;
+  let t1=clamp(rnd(d.wp*0.04-pdiff*1.6+defMult*3),1,5);
+  let t2=clamp(t1+clamp(rnd(agiDiff*3.5),1,5),t1,14);
+  let t3=clamp(t2+clamp(rnd(6-pdiff*2.2),1,6),t2,16);
+  let t4=clamp(t3+clamp(rnd(d.wp*0.035+defMult*2),1,5),t3,17);
+  const crit=clamp(20-rnd(2+pdiff*2.2+a.wp*0.03),t4+2,20);
+
+  const usingSpell=!!spell;
+  const offense=usingSpell?a.magStr*((spell.pow/4)||0.3):a.str;
+  const scale=usingSpell?1:wpScale(a.wp);
+  const raw=offense*scale;
+  const effFort=d.fort*(1+defMult*0.6);
+  const dmgBase=Math.max(1,rnd(raw*fortMult(effFort)));
+  const counterDmg=Math.max(0,rnd(d.str*wpScale(d.wp)*fortMult(a.fort)*0.25));
+
+  return [
+    {name:"Perfect Block",min:1,max:t1,dDef:0,dAtk:counterDmg,note:"defender fully negates + counters"},
+    {name:"Evade",min:t1+1,max:t2,dDef:0,dAtk:0,note:"defender dodges clean"},
+    {name:"Failed Hit",min:t2+1,max:t3,dDef:0,dAtk:0,note:"attack simply misses"},
+    {name:"Block",min:t3+1,max:t4,dDef:Math.max(1,rnd(dmgBase*0.35)),dAtk:0,note:"partial mitigation"},
+    {name:"Successful Hit",min:t4+1,max:crit-1,dDef:dmgBase,dAtk:0,note:"clean connect"},
+    {name:"Critical Hit",min:crit,max:20,dDef:rnd(dmgBase*1.75),dAtk:0,note:"maximum punish"}
+  ];
+}
+
+function el(id){return document.getElementById(id);}
+function factionOptions(){
+  const facs=[...new Set(state.chars.map(c=>c.faction))].sort();
+  return `<option value="all" ${state.factionFilter=="all"?"selected":""}>All Factions</option>`+
+    facs.map(f=>`<option value="${f}" ${state.factionFilter==f?"selected":""}>${f}</option>`).join("");
+}
+function charOptions(sel){
+  return state.chars.map((c,i)=>[c,i]).filter(([c])=>state.factionFilter=="all"||c.faction===state.factionFilter)
+    .map(([c,i])=>`<option value="${i}" ${i==sel?"selected":""}>${c.name}</option>`).join("");
+}
+function spellOptions(selIdx,noneLabel){
+  const groups={};
+  spellsRaw.forEach((s,i)=>{(groups[s.el]=groups[s.el]||[]).push([s,i]);});
+  let html=`<option value="-1" ${selIdx==-1?"selected":""}>${noneLabel}</option>`;
+  for(const g in groups){
+    html+=`<optgroup label="${g}">`+groups[g].map(([s,i])=>`<option value="${i}" ${selIdx==i?"selected":""}>${s.name}${s.pow===0?" (support)":""} · ×${(s.pow/4).toFixed(2)} MagStr · ${s.mp}mp</option>`).join("")+`</optgroup>`;
+  }
+  return html;
+}
+function statCard(c,role){
+  return `<div class="panel"><b>${role}: ${c.name}</b>
+  <div class="faction">${c.faction}</div>
+  <div class="statgrid">
+   <div><span>STR</span> ${fmt(c.str)}</div><div><span>Magical Str</span> ${fmt(c.magStr)}</div>
+   <div><span>Fortitude</span> ${fmt(c.fort)}</div><div><span>Agility</span> ${fmt(c.agi)}</div>
+   <div><span>INT</span> ${c.int}</div><div><span>Will</span> ${c.will}</div>
+   <div><span>Charisma</span> ${c.cha}</div><div><span>Weapon Prof.</span> ${c.wp}</div>
+   <div><span>Mana Talent</span> ${c.mt}</div><div><span>Mana Mastery</span> ${c.mm}</div>
+   <div><span>Power</span> ${fmt(power(c))}</div><div><span>Max HP</span> ${fmt(c.maxHp)}</div>
+  </div>
+  <div style="margin-top:6px;font-size:.8rem;color:var(--sub)">HP ${fmt(c.curHp)}/${fmt(c.maxHp)}</div>
+  <div class="bar"><i style="width:${clamp(c.curHp/c.maxHp*100,0,100)}%"></i></div>
+  <div style="margin-top:4px;font-size:.8rem;color:var(--sub)">MP ${c.curMp}/${c.mm}</div>
+  <div class="bar mp"><i style="width:${c.mm?clamp(c.curMp/c.mm*100,0,100):0}%"></i></div>
+  </div>`;
+}
+
+function render(){
+  const a=state.chars[state.atkIdx], d=state.chars[state.defIdx];
+  const spell=state.spellIdx>=0?spellsRaw[state.spellIdx]:null;
+  const defSpell=state.defSpellIdx>=0?spellsRaw[state.defSpellIdx]:null;
+  const bd=bands(a,d,spell,defSpell);
+  state.lastBands=bd;
+
+  el("app").innerHTML=`
+  <div class="panel">
+    <label>Filter by faction</label>
+    <select onchange="setFactionFilter(this.value)">${factionOptions()}</select>
+    <div class="row" style="margin-top:6px">
+      <div class="col"><label>Attacker</label><select onchange="setFighter('atk',this.value)">${charOptions(state.atkIdx)}</select></div>
+      <div class="col"><label>Defender</label><select onchange="setFighter('def',this.value)">${charOptions(state.defIdx)}</select></div>
+    </div>
+    <div class="swapBtn"><button class="secondary" onclick="swap()">⇄ Swap roles</button></div>
+    <label>Attacker's action</label>
+    <select onchange="setSpell(this.value)">${spellOptions(state.spellIdx,"— Basic Attack (STR + weapon) —")}</select>
+    ${spell&&a.curMp<spell.mp?`<div style="color:var(--bad);font-size:.8rem;margin-top:4px">⚠ ${a.name} only has ${a.curMp} mana mastery left, this costs ${spell.mp}.</div>`:""}
+    <label>Defender's reaction</label>
+    <select onchange="setDefSpell(this.value)">${spellOptions(state.defSpellIdx,"— Passive Defense (stats only) —")}</select>
+    ${defSpell&&d.curMp<defSpell.mp?`<div style="color:var(--bad);font-size:.8rem;margin-top:4px">⚠ ${d.name} only has ${d.curMp} mana mastery left, this costs ${defSpell.mp}.</div>`:""}
+  </div>
+
+  <div class="row">
+    <div class="col">${statCard(a,"Attacker")}</div>
+    <div class="col">${statCard(d,"Defender")}</div>
+  </div>
+
+  <h2>Minimum d20 roll per outcome</h2>
+  <div class="panel">
+  <table><tr><th>Outcome</th><th>Min roll</th><th>Range</th><th>Dmg→Def</th><th>Dmg→Atk</th></tr>
+  ${bd.map(b=>`<tr id="row_${b.name.replace(/\s/g,'')}"><td>${b.name}</td><td><b>${b.min}</b></td><td>${b.min}–${b.max}</td>
+    <td class="dmg">${fmt(b.dDef)}</td><td class="dmg">${fmt(b.dAtk)}</td></tr>`).join("")}
+  </table>
+  <details style="margin-top:8px"><summary>How this is calculated</summary>
+  <div style="font-size:.78rem;color:var(--sub);margin-top:6px">
+  Power = floor(max(STR+MagicalStr+Fort+AGI+INT+Will+Cha−40,0)/15) for both fighters. The six d20 bands (Perfect Block→Evade→Failed Hit→Block→Successful Hit→Critical Hit) come from log-scaled Power difference, log-scaled Agility difference, and the defender's Weapon Proficiency — if the defender picks a reactive spell/action, its power (÷4) nudges the Perfect Block and Block bands wider and boosts their effective Fortitude for this exchange (+60% of the spell's multiplier).
+  Raw damage = attacker's STR × weapon scaling (50%+1.5%×WP, capped 200%) for a basic attack, or Magical Strength × (spell power÷4) for a spell (no weapon scaling). That's then multiplied by the Fortitude mitigation curve: 0.35+0.65×65/(65+√Fortitude), floor 35%. Block = 35% of that, Critical = 175%. Perfect Block instead counters for 25% of the defender's own weapon-scaled STR, mitigated by the attacker's Fortitude. Max HP = 220+Fortitude; Mana pool = Mana Mastery.
+  </div></details>
+  </div>
+
+  <h2>Roll it</h2>
+  <div class="panel">
+    <div class="row">
+      <div class="col"><label>Custom roll (1–20)</label><input id="rollInput" type="number" min="1" max="20" value="${state.lastRoll||''}"></div>
+      <div class="col" style="display:flex;align-items:flex-end;gap:8px">
+        <button onclick="checkRoll()">Check roll</button>
+        <button class="secondary" onclick="randomRoll()">🎲 Random</button>
+      </div>
+    </div>
+    <div id="customResult"></div>
+  </div>
+
+  <h2>Add / reset characters</h2>
+  <div class="panel">
+    <button class="secondary" onclick="resetHpMp()">Reset HP &amp; MP for both fighters</button>
+    <details style="margin-top:10px"><summary>Add a custom character</summary>
+    <div id="addForm" class="row" style="margin-top:8px">
+      <div class="col" style="flex-basis:160px"><label>name</label><input id="nf_name" type="text"></div>
+      <div class="col" style="flex-basis:160px"><label>faction</label><input id="nf_faction" type="text" placeholder="Player"></div>
+      ${["str","magStr","fort","agi","int","will","cha","wp","mt","mm"].map(f=>`
+      <div class="col" style="flex-basis:110px"><label>${f}</label><input id="nf_${f}" type="number" value="0"></div>`).join("")}
+    </div>
+    <small class="note">str/magStr/fort/agi can be any size; int/will/cha/wp are 0–100; mt (mana talent) 0–40; mm (mana mastery) 0–100. Faction defaults to "Player" if left blank.</small><br>
+    <button style="margin-top:8px" onclick="addChar()">Add character</button>
+    </details>
+  </div>
+  `;
+  if(state.lastRoll) checkRoll();
+}
+
+function setFighter(role,v){ state[role+"Idx"]=+v; state.lastRoll=null; render(); }
+function setSpell(v){ state.spellIdx=+v; state.lastRoll=null; render(); }
+function setDefSpell(v){ state.defSpellIdx=+v; state.lastRoll=null; render(); }
+function setFactionFilter(v){
+  state.factionFilter=v;
+  const matches=i=>state.factionFilter=="all"||state.chars[i].faction===state.factionFilter;
+  if(!matches(state.atkIdx)) state.atkIdx=state.chars.findIndex((c,i)=>matches(i));
+  if(!matches(state.defIdx)) state.defIdx=state.chars.findIndex((c,i)=>matches(i));
+  state.lastRoll=null; render();
+}
+function swap(){ [state.atkIdx,state.defIdx]=[state.defIdx,state.atkIdx]; [state.spellIdx,state.defSpellIdx]=[state.defSpellIdx,state.spellIdx]; state.lastRoll=null; render(); }
+function findBand(roll){ return state.lastBands.find(b=>roll>=b.min&&roll<=b.max); }
+
+function checkRoll(){
+  const v=clamp(parseInt(el("rollInput").value)||0,1,20);
+  el("rollInput").value=v; state.lastRoll=v;
+  state.lastBands.forEach(b=>{const r=el("row_"+b.name.replace(/\s/g,''));if(r)r.classList.remove("hl");});
+  const b=findBand(v);
+  const row=el("row_"+b.name.replace(/\s/g,'')); if(row) row.classList.add("hl");
+  el("customResult").innerHTML=`Rolled <b>${v}</b> → <span class="badge">${b.name}</span> — ${b.note}.
+   <span class="dealt">Dmg to defender: ${fmt(b.dDef)}</span> · <span class="dmg">Dmg to attacker: ${fmt(b.dAtk)}</span>
+   <div style="margin-top:6px"><button onclick="applyDamage()">Apply to HP/MP</button></div>`;
+}
+function randomRoll(){ el("rollInput").value=Math.floor(Math.random()*20)+1; checkRoll(); }
+
+function applyDamage(){
+  if(!state.lastRoll) return;
+  const b=findBand(state.lastRoll);
+  const a=state.chars[state.atkIdx], d=state.chars[state.defIdx];
+  d.curHp=clamp(d.curHp-b.dDef,0,d.maxHp);
+  a.curHp=clamp(a.curHp-b.dAtk,0,a.maxHp);
+  if(state.spellIdx>=0){ const s=spellsRaw[state.spellIdx]; a.curMp=clamp(a.curMp-s.mp,0,a.mm); }
+  if(state.defSpellIdx>=0){ const s=spellsRaw[state.defSpellIdx]; d.curMp=clamp(d.curMp-s.mp,0,d.mm); }
+  render();
+}
+function resetHpMp(){
+  [state.atkIdx,state.defIdx].forEach(i=>{const c=state.chars[i]; c.curHp=c.maxHp; c.curMp=c.mm;});
+  render();
+}
+function addChar(){
+  const g=f=>el("nf_"+f).value;
+  if(!g("name")){ alert("Give the character a name."); return; }
+  const c=mkChar([g("name"),g("str"),g("magStr"),g("fort"),g("agi"),g("int"),g("will"),g("cha"),g("wp"),g("mt"),g("mm"),g("faction")]);
+  state.chars.push(c); state.atkIdx=state.chars.length-1; state.factionFilter="all"; render();
+}
+render();
+</script>
+</body>
+</html>
