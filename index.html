@@ -263,7 +263,12 @@ const BYPASS={none:{label:"No bypass",skip:[]},
  block:{label:"Unblockable (skips Perfect Guard & Block)",skip:["Perfect Guard","Block"]},
  evade:{label:"Undodgeable (skips Evade & Miss)",skip:["Evade","Miss"]},
  all:{label:"Unavoidable (skips every defense)",skip:["Perfect Guard","Evade","Miss","Block"]}};
-const MODS0=()=>({dmgMult:1,flat:0,ignoreFort:false,bypass:"none",unless:[],acc:0,dc:0,taken:1});
+const MODS0=()=>({dmgMult:1,flat:0,ignoreFort:false,bypass:"none",unless:[],only:[],acc:0,dc:0,taken:1});
+// "only" limits an ability's modifiers to attacks of that type: an element (Fire, Water, Wind, Earth, Yin, Yang, Composite),
+// "magic" (any spell) or "physical" (basic attack). Applied on import when the pasted JSON doesn't say (edit any time in the form).
+const ONLY0={"fire avoidance":["Fire"],"water drainage":["Water"],"wind absorption":["Wind"],"mud slippage":["Earth"],"darkness nullification":["Yin"],
+  "elemental resistances/avoidances":["magic"],"anti-magic variants":["magic"],"sorcery":["magic"]};
+const HOLD0={"fire avoidance":"Reinhard","water drainage":"Reinhard","wind absorption":"Reinhard","mud slippage":"Reinhard","darkness nullification":"Reinhard","sorcery":"Roswaal","arrow evasion":"Reinhard","mind-changing":"Reinhard","blue skies":"Reinhard","weeping skies":"Reinhard","night skies":"Reinhard"};
 const nv=(v,d)=>{const x=parseFloat(v);return isNaN(x)?d:x;};
 const catalog={}; let abilN=0, EFF=null;
 function addAbility(kind,name,note,mods){const id="k"+(++abilN);return catalog[id]={id,kind,name,note:note||"",mods:{...MODS0(),...(mods||{})}};}
@@ -304,6 +309,82 @@ const abilData=[
 ["auth","Hubristic Ten Commandments",["Stride"],"Ring-based cursing/puppetry"],["auth","Unnamed Authority (loop variant)",["Al ("]]
 ];
 abilData.forEach(([k,n,who,note,mods])=>{const ab=addAbility(k,n,note,mods);who.forEach(p=>state.chars.forEach(c=>{if(c.name.startsWith(p))grant(c,ab.id);}));});
+const BAKED=[
+["dp","Sword Saint",{"dmgMult":2.5,"acc":3,"dc":4},"Maximizes skill; visualizes optimal attack/defense lines."],
+["dp","Wind Evasion",{"dc":1},"Nullifies wind resistance for self and passengers."],
+["dp","Phoenix",{},"One-time instant revival; unmodelable in single roll."],
+["dp","Phoenix Next",{},"Successive continuous revival + location choice; unmodelable."],
+["dp","Arrow Evasion",{"dc":4,"bypass":"none"},"Projectiles change trajectory; cannot hit the holder."],
+["dp","Telepathy",{},"Thought transmission; no direct combat effect."],
+["dp","Judgment",{"acc":1},"Reveals opponent Divine Protections."],
+["dp","Mind-Changing",{"acc":2},"Forcibly alters target mind/beliefs; situational control."],
+["dp","First Sight",{"dc":2},"Superior reaction to first encounter of an attack."],
+["dp","Second Sight",{"dc":3},"Near-impossible to hit with previously seen attacks."],
+["dp","Anti-Magic Variants",{"taken":0.4},"Nullifies or heavily weakens magical enhancements."],
+["dp","Fire Avoidance",{"taken":0.2},"Cuts ~80% of fire magic damage."],
+["dp","Water Drainage",{"taken":0.2},"Reflects majority of water magic."],
+["dp","Wind Absorption",{"taken":0.2},"Absorbs ~80% of wind magic as energy."],
+["dp","Mud Slippage",{"taken":0.2},"Decreases earth magic effect by ~80%."],
+["dp","Darkness Nullification",{"taken":0.2},"Nullifies majority of yin/dark magic."],
+["dp","Elemental Resistances/Avoidances",{"taken":0.25},"Collective high elemental resistance suite."],
+["dp","Blue Skies",{"dmgMult":1.3,"taken":0.85},"Strength boost under clear blue skies."],
+["dp","Weeping Skies",{"dmgMult":1.3,"taken":0.85},"Strength boost under rainy weather."],
+["dp","Night Skies",{"dmgMult":1.3,"taken":0.85},"Strength boost under night sky."],
+["dp","Death God",{"dmgMult":1.3,"ignoreFort":true},"Wounds never fully heal; proximity reopens them."],
+["dp","Wind Reading (Wind Indication)",{"acc":2,"dc":1},"Sees wind, invisibles, emotions, and lies."],
+["dp","Durability (armor)",{"taken":0.7},"Engraved armor durability enhancement."],
+["dp","Soul of Language (Kotodama)",{},"Speaks with all living creatures; no combat value."],
+["dp","Earth Spirits",{"taken":0.6,"dc":1},"Grounded earth armor, sediment control, faster recovery."],
+["dp","Water",{"taken":0.85},"Strong water/healing magic aptitude."],
+["dp","Sun",{"dmgMult":1.4,"taken":0.8},"Full ability buffs only while under sunlight."],
+["dp","Trisection",{"taken":0.4},"Shares and splits damage/burdens among holders."],
+["dp","Gathering Spirits",{"acc":1},"Sees, talks to, and attracts spirits."],
+["dp","Demon Manipulation",{"dmgMult":1.2},"Controls witchbeasts; limited by number and strength."],
+["dp","Clairvoyance",{"acc":1,"dc":1},"Synchronizes distant vision; prolonged use harms eyes."],
+["dp","Sorcery",{"dmgMult":1.5},"Perfect compatibility with all six magic elements."],
+["weapon","Dragon Sword Reid",{"dmgMult":4,"ignoreFort":true,"bypass":"all"},"Cuts nearly anything including concepts; draws only vs worthy."],
+["weapon","Chopsticks",{"dmgMult":1.5,"ignoreFort":true},"Reid turns ordinary chopsticks into Authority-cutting weapons."],
+["weapon","Fiend Sword Murasame",{"dmgMult":3.5,"ignoreFort":true,"bypass":"all"},"Severs the essence/point of any person, object, or concept."],
+["weapon","Dream Sword Masayume",{"dmgMult":3,"ignoreFort":true},"Grants dreams; severs beyond normal physical logic."],
+["weapon","High-Quality Blade(s)",{"dmgMult":1.3},"Superior steel; often dual-wielded by Wilhelm."],
+["weapon","Yang Sword Vollachia",{"dmgMult":2.5,"ignoreFort":true},"Materializes from air; burns and cuts as willed."],
+["weapon","Gutting Blades",{"dmgMult":1.4,"ignoreFort":true},"Elsa’s curved knives; extreme sharpness and durability."],
+["weapon","Spirit-Assisted Knight's Sword",{"dmgMult":1.6},"Julius sword enhanced by quasi/full spirits."],
+["weapon","Dual Shields",{"dmgMult":1.2,"dc":2},"Garfiel offensive shield bashes plus solid defense."],
+["weapon","Claws",{"dmgMult":1.5},"Partial/full beastification natural weapons."],
+["weapon","Morning Star / Flail",{"dmgMult":1.3},"Rem’s heavy impact weapon."],
+["weapon","Staff",{"dmgMult":1.1},"Ram’s casting focus; minor physical capability."],
+["weapon","Heavy Axe",{"dmgMult":1.4},"Ricardo-style brutal crushing force."],
+["weapon","Flying Winged Blade",{"dmgMult":1.5,"acc":1},"Balleroy aerial projectile blade."],
+["weapon","Sword (improvised)",{"dmgMult":1.1},"Al’s functional but ordinary blade."],
+["auth","Sloth (Invisible Providence)",{"dmgMult":1.2,"bypass":"evade","acc":2},"Subaru’s limited single Unseen Hand."],
+["auth","Greed (Cor Leonis variant)",{"taken":0.5},"Burden sharing; reduces personal damage taken."],
+["auth","Return by Death",{},"Time-loop revival linked to Envy; unmodelable."],
+["auth","Envy",{"dmgMult":3,"taken":0.1,"bypass":"all"},"Vast shadows, possession, reality-warping destruction."],
+["auth","Sloth",{"dmgMult":2,"bypass":"evade","acc":3},"Sekhmet’s invisible long-range telekinetic force."],
+["auth","Sloth (Unseen Hands)",{"dmgMult":1.8,"bypass":"evade","acc":2},"Petelgeuse multi-hand invisible assaults."],
+["auth","Greed (Lion's Heart)",{"dmgMult":2.5,"ignoreFort":true,"bypass":"all","unless":["Dragon Sword Reid"],"taken":0.05},"Full time-stop invulnerability while active; near-total immunity."],
+["auth","Greed (Book of Wisdom)",{"acc":2,"dc":1},"Knowledge of past/present/future; tactical edge."],
+["auth","Vainglory",{"taken":0.05,"bypass":"all"},"Reality rewrite so events ‘never happened’; self-resurrection."],
+["auth","Melancholy",{"dmgMult":1.8,"acc":1},"Pressure/weight force; later borrowed users weaker."],
+["auth","Pride",{"dmgMult":1.5,"ignoreFort":true},"Typhon judgment that breaks the unworthy."],
+["auth","Gluttony (witchbeasts)",{"dmgMult":1.3},"Daphne creates and directs witchbeasts."],
+["auth","Gluttony (names/memories)",{"dmgMult":1.4,"acc":1},"Eats name + memories; replicates skills; identity erasure."],
+["auth","Lust (Variation and Change)",{"dmgMult":1.6,"taken":0.6},"Transforms self/others into any form."],
+["auth","Lust (love/attraction)",{"acc":2},"Carmilla extreme attraction manipulation."],
+["auth","Wrath (sharing/resonance)",{"dmgMult":1.5,"taken":0.7},"Shares emotions, pain, and wounds; group control."],
+["auth","Wrath (forced healing)",{"dmgMult":0},"Minerva cannot deal damage; all attacks become forced healing."],
+["auth","Hubristic Ten Commandments",{"dmgMult":1.3,"acc":1},"Stride ring-based cursing and puppetry."],
+["auth","Unnamed Authority (loop variant)",{},"Al’s distinct loop/resurrection; unmodelable here."]
+].map(([kind,name,mods,note])=>({kind,name,mods,note}));
+applyModList(BAKED);   // tuned modifiers for every ability (import box can still overwrite them)
+// Default loadout: each character starts with what they canonically have switched ON.
+// One weapon at a time (their first listed); borrowed Melancholy and the mutually exclusive weather protections start OFF.
+const OFF_NAMES=new Set(["Blue Skies","Weeping Skies","Night Skies"]),OFF_PAIRS=[["Melancholy","Clind"],["Melancholy","Petra"]];
+state.chars.forEach(c=>{let hasW=false;c.abil.forEach(id=>{const x=catalog[id];
+  if(OFF_NAMES.has(x.name)||OFF_PAIRS.some(([n,p])=>x.name===n&&c.name.startsWith(p)))return;
+  if(x.kind==="weapon"){if(hasW)return;hasW=true;}
+  c.active[id]=true;});});
 const magicData=[["Roswaal","All six elements; can cast from multiple body parts"],["Emilia","Fire + Water; ice magic (Huma variants)"],
 ["Beatrice","Yin (Shamak to Al Shamak) + some Fire/support; huge mana pool"],["Puck","Fire (ice specialty) + spirit arts"],["Ram","Wind (Fura variants), limited others"],
 ["Rem","Water (healing, ice) + physical enhancement"],["Felix","Water (elite healing)"],["Julius","Six quasi-spirits, multi-element; spirit arts + swordsmanship"],
@@ -311,25 +392,33 @@ const magicData=[["Roswaal","All six elements; can cast from multiple body parts
 ["Echidna (Witch","Advanced/forbidden magic, rituals, experimental spells"],["Petelgeuse","Limited; Authority-based"],["Natsuki","Very limited; Authorities + Beatrice's Shamak"],
 ["Reinhard,Reid,Cecilus,Wilhelm,Elsa","Little/no conventional magic; Flow Method or pure skill"]];
 const magicNote=c=>{const m=magicData.find(([k])=>k.split(",").some(p=>c.name.startsWith(p)));return m?m[1]:"";};
-const blankForm=()=>({id:null,kind:"auth",name:"",note:"",bypass:"none",unless:"",dmgMult:1,flat:0,acc:0,dc:0,taken:1,ignoreFort:false,grant:"atk"});
-state.form=blankForm(); state.formOpen=false;
+const blankForm=()=>({id:null,kind:"auth",name:"",note:"",bypass:"none",unless:"",only:"",dmgMult:1,flat:0,acc:0,dc:0,taken:1,ignoreFort:false,grant:"atk"});
+state.form=blankForm(); state.formOpen=false; state.importText=""; state.importMsg=""; state.impOpen=false;
 
 function activeList(c){return c.abil.filter(id=>c.active[id]).map(id=>catalog[id]);}
-function calcEff(a,d){
+function calcEff(a,d,spell){
   const A=activeList(a),D=activeList(d),e={dmg:1,flat:0,ign:false,acc:0,dc:0,taken:1,skip:new Set(),notes:[]};
-  A.forEach(x=>{const m=x.mods;e.dmg*=m.dmgMult;e.flat+=m.flat;e.ign=e.ign||m.ignoreFort;e.acc+=m.acc;
+  const tags=spell?[String(spell.el).toLowerCase(),"magic"]:["physical"];
+  // an ability with an "only" list works just when the attack in question is one of those types
+  const skipped=new Set();
+  const ok=x=>{const o=x.mods.only||[];if(!o.length)return true;if(o.some(t=>tags.includes(String(t).toLowerCase()))){e.notes.push(`${x.name} applies (${o.join("/")} attack).`);return true;}
+    skipped.add(x.name);return false;};
+  A.forEach(x=>{const m=x.mods;if(!(m.dmgMult!==1||m.flat||m.ignoreFort||m.bypass!=="none"||m.acc)||!ok(x))return;
+    e.dmg*=m.dmgMult;e.flat+=m.flat;e.ign=e.ign||m.ignoreFort;e.acc+=m.acc;
     if(m.bypass!=="none"){
       const neg=D.find(y=>m.unless.some(u=>y.name.toLowerCase().includes(u.toLowerCase())));
       if(neg) e.notes.push(`${x.name} (${BYPASS[m.bypass].label}) is negated by the defender's ${neg.name}.`);
       else{BYPASS[m.bypass].skip.forEach(n=>e.skip.add(n));e.notes.push(`${x.name}: ${BYPASS[m.bypass].label}.`);}
     }});
-  D.forEach(x=>{e.dc+=x.mods.dc;e.taken*=x.mods.taken;});
+  D.forEach(x=>{const m=x.mods;if(!(m.dc||m.taken!==1)||!ok(x))return;e.dc+=m.dc;e.taken*=m.taken;});
+  if(skipped.size)e.notes.push(`Not applicable to this ${spell?spell.el+" spell":"physical attack"} (limited to other attack types): ${[...skipped].join(", ")}.`);
   return e;
 }
 function modSummary(m){const s=[];
   if(m.dmgMult!==1)s.push(`dmg ×${m.dmgMult}`);if(m.flat)s.push(`${m.flat>0?"+":""}${m.flat} dmg`);if(m.ignoreFort)s.push("ignores Fort");
   if(m.bypass!=="none")s.push(BYPASS[m.bypass].label.split(" (")[0]+(m.unless.length?` except vs ${m.unless.join("/")}`:""));
   if(m.acc)s.push(`accuracy ${m.acc>0?"+":""}${m.acc}`);if(m.dc)s.push(`defense DC ${m.dc>0?"+":""}${m.dc}`);if(m.taken!==1)s.push(`takes ×${m.taken}`);
+  if(m.only&&m.only.length)s.push("only vs "+m.only.join("/"));
   return s.length?"· "+s.join(", "):"· no modifiers";}
 function abilPanel(c,role,who){
   const mine=c.abil.map(id=>catalog[id]),have=new Set(c.abil),kinds=Object.keys(KIND);
@@ -350,22 +439,52 @@ function abilForm(){
    <div class="col" style="flex-basis:150px"><label>type</label><select onchange="state.form.kind=this.value">${Object.keys(KIND).map(k=>`<option value="${k}" ${sel(f.kind,k)}>${KIND[k]}</option>`).join("")}</select></div>
    <div class="col" style="flex-basis:250px"><label>when attacking: skip defenses</label><select onchange="state.form.bypass=this.value">${Object.keys(BYPASS).map(k=>`<option value="${k}" ${sel(f.bypass,k)}>${BYPASS[k].label}</option>`).join("")}</select></div>
    <div class="col" style="flex-basis:250px"><label>…except if the defender has ACTIVE (names, comma-separated)</label><input type="text" placeholder="Dragon Sword Reid" value="${esc(f.unless)}" oninput="state.form.unless=this.value"></div>
+   <div class="col" style="flex-basis:250px"><label>only applies vs attacks of type (Fire, Water, Wind, Earth, Yin, Yang, Composite, magic, physical — blank = all)</label><input type="text" placeholder="Fire" value="${esc(f.only)}" oninput="state.form.only=this.value"></div>
   </div>
   <div class="row">${num("dmgMult","damage ×","Multiplies the attacker's damage. 0 = deals no damage")}${num("flat","flat damage +","Added after Fortitude reduction")}${num("acc","accuracy +","Attacker: lowers the defense DC")}${num("dc","defense DC +","Defender: makes it harder to be hit")}${num("taken","damage taken ×","Defender: multiplies damage received")}</div>
   <label class="chk"><input type="checkbox" ${f.ignoreFort?"checked":""} onchange="state.form.ignoreFort=this.checked"> ignores the defender's Fortitude damage reduction (attacker)</label>
   <div class="row"><div class="col"><label>note</label><input type="text" value="${esc(f.note)}" oninput="state.form.note=this.value"></div>
    <div class="col" style="flex-basis:150px"><label>give it to</label><select onchange="state.form.grant=this.value"><option value="atk" ${sel(f.grant,"atk")}>Attacker</option><option value="def" ${sel(f.grant,"def")}>Defender</option><option value="none" ${sel(f.grant,"none")}>Nobody (catalog only)</option></select></div></div>
   <div style="margin-top:8px"><button onclick="saveAbil()">${f.id?"Save changes":"Add ability"}</button> <button class="secondary" onclick="state.form=blankForm();render()">Clear / new</button></div>
-  <small class="note">Offensive fields (damage, flat, accuracy, skip defenses, ignores Fortitude) apply when the holder is the attacker and the ability is ticked active; defensive fields (defense DC, damage taken) apply when the holder is the defender. Abilities live in memory only — they reset on reload.</small></details>`;
+  <small class="note">Offensive fields (damage, flat, accuracy, skip defenses, ignores Fortitude) apply when the holder is the attacker and the ability is ticked active; defensive fields (defense DC, damage taken) apply when the holder is the defender. Every character starts with their own abilities switched on (one weapon at a time); changes you make reset on reload.</small></details>`;
+}
+function applyModList(arr){
+  let upd=0,add=0;const bad=[];
+  arr.forEach(o=>{
+    if(!o||typeof o.name!=="string"){bad.push("(entry without a name)");return;}
+    const m=o.mods||{},c={};
+    ["dmgMult","flat","acc","dc","taken"].forEach(k=>{if(k in m)c[k]=nv(m[k],MODS0()[k]);});
+    if("ignoreFort" in m)c.ignoreFort=!!m.ignoreFort;
+    if("bypass" in m)c.bypass=BYPASS[m.bypass]?m.bypass:"none";
+    if("unless" in m)c.unless=(Array.isArray(m.unless)?m.unless:[]).map(String).filter(Boolean);
+    const key=o.name.toLowerCase();
+    if("only" in m)c.only=(Array.isArray(m.only)?m.only:String(m.only).split(",")).map(x=>String(x).trim()).filter(Boolean);
+    else if(ONLY0[key])c.only=ONLY0[key];
+    let ab=Object.values(catalog).find(x=>x.name.toLowerCase()===o.name.toLowerCase()&&(!o.kind||x.kind===o.kind));
+    if(ab){Object.assign(ab.mods,c);if(o.note!==undefined)ab.note=String(o.note);upd++;}
+    else if(KIND[o.kind]){ab=addAbility(o.kind,o.name,o.note,c);(o.holders||(HOLD0[key]?[HOLD0[key]]:[])).forEach(h=>state.chars.forEach(ch=>{if(ch.name.startsWith(h))grant(ch,ab.id);}));add++;}
+    else bad.push(o.name);
+  });
+  return {upd,add,bad};
+}
+function importBox(){return `<details class="panel" ${state.impOpen?"open":""} ontoggle="state.impOpen=this.open"><summary>Import modifiers (paste JSON from another AI)</summary>
+  <textarea rows="8" style="width:100%;margin-top:8px;font-family:monospace;font-size:.75rem;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)" oninput="state.importText=this.value" placeholder='[{"kind":"auth","name":"Greed (Lion\'s Heart)","mods":{"bypass":"block","unless":["Dragon Sword Reid"]}}]'>${esc(state.importText)}</textarea>
+  <div style="margin-top:8px"><button onclick="importMods()">Apply</button></div>${state.importMsg?`<div class="effnote">${esc(state.importMsg)}</div>`:""}</details>`;}
+function importMods(){
+  const t=state.importText,s=t.indexOf("["),e=t.lastIndexOf("]");let arr;
+  try{arr=JSON.parse(t.slice(s,e+1).replace(/\\(?!["\\\/bfnrtu])/g,""));}catch(err){state.importMsg="Couldn't read that as a JSON array: "+err.message;render();return;}
+  const {upd,add,bad}=applyModList(arr);
+  state.importMsg=`Updated ${upd}, added ${add}.`+(bad.length?` Skipped (unknown name, no valid "kind"): ${bad.join(", ")}.`:"");
+  state.importText="";state.lastRoll=null;render();
 }
 function fighter(w){return state.chars[state[w+"Idx"]];}
 function toggleAbil(w,id){const c=fighter(w);c.active[id]=!c.active[id];state.lastRoll=null;render();}
 function giveAbil(w,id){if(!id)return;const c=fighter(w);grant(c,id);c.active[id]=true;state.lastRoll=null;render();}
 function dropAbil(w,id){const c=fighter(w);c.abil=c.abil.filter(x=>x!==id);delete c.active[id];state.lastRoll=null;render();}
-function editAbil(id){const x=catalog[id],m=x.mods;state.form={id,kind:x.kind,name:x.name,note:x.note,bypass:m.bypass,unless:m.unless.join(", "),dmgMult:m.dmgMult,flat:m.flat,acc:m.acc,dc:m.dc,taken:m.taken,ignoreFort:m.ignoreFort,grant:"none"};state.formOpen=true;render();}
+function editAbil(id){const x=catalog[id],m=x.mods;state.form={id,kind:x.kind,name:x.name,note:x.note,bypass:m.bypass,unless:m.unless.join(", "),only:(m.only||[]).join(", "),dmgMult:m.dmgMult,flat:m.flat,acc:m.acc,dc:m.dc,taken:m.taken,ignoreFort:m.ignoreFort,grant:"none"};state.formOpen=true;render();}
 function saveAbil(){
   const f=state.form;if(!f.name.trim()){alert("Give the ability a name.");return;}
-  const mods={dmgMult:nv(f.dmgMult,1),flat:nv(f.flat,0),ignoreFort:!!f.ignoreFort,bypass:f.bypass,unless:String(f.unless).split(",").map(s=>s.trim()).filter(Boolean),acc:nv(f.acc,0),dc:nv(f.dc,0),taken:nv(f.taken,1)};
+  const mods={dmgMult:nv(f.dmgMult,1),flat:nv(f.flat,0),ignoreFort:!!f.ignoreFort,bypass:f.bypass,unless:String(f.unless).split(",").map(s=>s.trim()).filter(Boolean),only:String(f.only).split(",").map(s=>s.trim()).filter(Boolean),acc:nv(f.acc,0),dc:nv(f.dc,0),taken:nv(f.taken,1)};
   let ab=f.id?catalog[f.id]:addAbility(f.kind,f.name.trim(),f.note,mods);
   Object.assign(ab,{kind:f.kind,name:f.name.trim(),note:f.note,mods});
   if(f.grant!=="none"){const c=fighter(f.grant);grant(c,ab.id);c.active[ab.id]=true;}
@@ -443,7 +562,7 @@ function counterDamage(a,d,perfect){
 }
 
 function bands(a,d,spell,defAction){
-  EFF=calcEff(a,d); state.lastEff=EFF;
+  EFF=calcEff(a,d,spell); state.lastEff=EFF;
   const defType = (defAction && defAction.type) || "passive";
   const target=defenseTarget(a,d,defType,spell);
   const usingSpell=!!spell;
@@ -606,6 +725,7 @@ function render(){
   <h2>Abilities, weapons &amp; modifiers</h2>
   <div class="row"><div class="col">${abilPanel(a,"Attacker","atk")}</div><div class="col">${abilPanel(d,"Defender","def")}</div></div>
   ${abilForm()}
+  ${importBox()}
   <div class="panel">
     <div class="links" style="margin:0">Reference pages: ${abilityLinks.map(([l,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join(" · ")}</div>
   </div>
@@ -632,7 +752,7 @@ function render(){
   </ul>
   <b>Damage:</b> physical attacks use Strength × Weapon Proficiency scaling; spells use Magical Strength × spell multiplier. Fortitude then applies the Base Stats mitigation curve. Block deals 35% of the resulting damage; Critical deals 175%. Mana costs use Mana Mastery as the character's current maximum pool.
   <br><br>
-  <b>Ability modifiers:</b> tick an ability to make it active. Active offensive modifiers change the attacker's damage/accuracy and can turn defense outcomes into plain hits; active defensive modifiers change the defender's DC and damage taken. A bypass is cancelled when the defender has an active ability matching its "except" list.
+  <b>Ability modifiers:</b> tick an ability to make it active. Active offensive modifiers change the attacker's damage/accuracy and can turn defense outcomes into plain hits; active defensive modifiers change the defender's DC and damage taken. A bypass is cancelled when the defender has an active ability matching its "except" list. An "only vs" list limits a modifier to attacks of that type (an element, or "magic" / "physical"), so e.g. Fire Avoidance only reduces Fire spells.
   <br><br>
   <b>Base Stats fidelity:</b> STR, Magical Strength, Fortitude, Agility, INT, Will, CHA, Weapon Proficiency, Mana Talent, Mana Mastery, Max HP, Max Sanity and Power are kept exactly as written in Base Stats; no combat recalculation overwrites them.
   <br><br>
