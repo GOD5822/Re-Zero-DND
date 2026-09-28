@@ -53,11 +53,17 @@ label{font-size:.78rem;color:var(--sub);display:block;margin-top:6px;}
 footer{text-align:center;color:var(--sub);font-size:.75rem;margin:2em 0 1em;}
 small.note{color:var(--sub);font-size:.72rem;}
 .faction{font-size:.75rem;color:var(--sub);margin:-4px 0 4px;}
+a{color:var(--accent);}
+.links{font-size:.8rem;margin:0 0 6px;}
+.ab{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;font-size:.8rem;margin:3px 0;color:var(--text);margin-top:3px}
+.ab span{color:var(--sub);font-size:.72rem}.ab input,.chk input{width:auto}
+.ak{font-size:.75rem;color:var(--accent2);margin-top:8px}
+.effnote{font-size:.8rem;margin-top:6px;color:var(--sub)}.chk{display:flex;gap:6px;align-items:center;margin-top:8px}
 </style>
 </head>
 <body>
 <h1>⚔️ Combat Simulator</h1>
-<div class="sub">Re:Zero-verse stat block edition — both fighters now choose an action. Expanded spell list + defensive maneuvers.</div>
+<div class="sub">Re:Zero-verse stat block edition — characters grouped by tier with fandom wiki links; both fighters choose an action. Max HP is the value listed in Base Stats.</div>
 <div id="app"></div>
 <footer>Homebrew d20 outcome bands layered on top of your stat-block formulas — see "How this is calculated" below the results table.</footer>
 <script>
@@ -135,120 +141,236 @@ const defActionsRaw=[
   {id:"perfect", name:"Focus: Perfect Guard / Counter", type:"perfect"}
 ];
 
-// [name, str, magStr, fort, agi, int, will, cha, wp, manaTalent, manaMastery, faction]
-const charsRaw=[
-["Reinhard van Astrea",911828.7,0,911828.7,411828.7,80,100,100,100,0,0,"Kingdom of Lugnica / Astrea"],
-["Satella (Witch of Envy)",112188.7,100000,0,59997.8,100,100,50,0,39,0,"Witch Cult (Original)"],
-["Reid Astrea (Prime)",257618.6,0,20000,76186,70,99,40,100,0,0,"Astrea Household"],
-["Volcanica (Prime, Divine Dragon)",39997.8,45000,500000,4598,80,69,40,0,40,100,"Volcanica"],
-["Cecilus Segmunt",27760.2,0,9000,577602,50,99,60,87,0,50,"Vollachian Empire"],
-["Regulus Corneas",59.7,0,12500,659.7,50,80,70,0,0,0,"Witch Cult"],
-["Sekhmet (Witch of Sloth)",4601.1,3500,1200,1.1,50,40,40,0,0,0,"Witch Cult (Original)"],
-["Ram (Full Potential)",9276.9,12000,4000,71300,65,70,80,70,30,78,"Roswaal Household"],
-["Pandora (Witch of Vainglory)",2126.6,0,42,226.6,90,90,60,0,0,0,"Witch Cult (Original)"],
-["Shaula (Sage's Guardian)",3103.9,6500,6000,8464.9,60,100,80,0,20,84,"Sage's Tower"],
-["Sphinx",94.1,8800,94.1,94.1,90,77,60,0,38,93,"Witch Cult"],
-["Hector (Warlock of Melancholy)",649.2,11000,0,649.2,64,79,40,0,0,0,"Witch Cult"],
-["Puck (True Form)",10098.3,10500,50000,477.5,80,60,80,0,30,80,"Great Spirits"],
-["Roswaal L. Mathers",3086.8,9200,0,986.8,85,70,80,0,36,87,"Mathers Household"],
-["Theresia van Astrea (Prime)",7243.2,0,8875.4,7243.2,70,80,70,99,0,0,"Astrea Household"],
-["Arakiya",5052.3,6000,8465.9,15052.3,57,30,30,40,27,74,"Vollachian Empire"],
-["Olbart Dunkelkenn",2353,0,1009.7,23523.9,55,60,70,80,30,77,"Vollachian Empire"],
-["Typhon (Witch of Pride)",695.3,0,95.3,695.3,40,70,60,0,0,0,"Witch Cult"],
-["Echidna (Witch of Greed)",478.6,8000,78.6,478.6,100,90,70,0,40,100,"Witch Cult (Original)"],
-["Capella Emerada Lugunica",1195.6,0,195.6,788.5,30,50,60,0,0,0,"Witch Cult"],
-["Yorna Mishigure",235,4000,265,235,84,85,80,0,17,37,"Vollachian Empire"],
-["Daphne (Witch of Gluttony)",230.5,0,230.5,230.5,43,90,30,0,0,0,"Witch Cult"],
-["Moguro Hagane",856,6000,15000,557.2,45,40,40,0,20,67,"Vollachian Empire"],
-["Minerva (Witch of Wrath)",851.5,0,851.5,221.5,40,69,70,0,0,0,"Witch Cult"],
-["Carmilla (Witch of Lust)",217,0,17,217,40,30,99,0,0,0,"Witch Cult"],
-["Hallibel",7000,7000,10000,50000,85,80,70,93,38,83,"Vollcahia (the Admirier)"],
-["Ley Batenkaitos",5334.8,4500,1400,3034.8,65,50,30,43,20,50,"Witch Cult"],
-["Roy Alphard",6196.8,5000,3038,4069.2,70,50,30,90,22,52,"Witch Cult"],
-["Louis Arneb",32.8,42.4,80,32.8,80,80,70,20,25,59,"Witch Cult"],
-["Stride Vollachia (former)",94.9,0,31.9,31.9,65,0,80,0,0,0,"Vollachian Empire"],
-["Kafma Irulux",2093.9,1200,12500,2065.7,60,60,50,86,14,36,"Independent"],
-["Madelyn Eschart",2264.6,2600,5993,1493,40,70,70,0,10,20,"Vollachian Empire"],
-["Priscilla Barielle",1092,3200,2229,1029,80,90,80,80,10,20,"Barielle Household"],
-["Julius Juukulius (Peak)",62.3,2900,1828.1,891.1,76,70,70,85,0,0,"Juukulius Household"],
-["Emilia (Peak Potential)",4027.1,7200,8007.1,1027.1,50,80,50,60,15,33,"Kingdom of Lugnica"],
-["Beatrice (Full Mana Reserve)",26.2,9900,59.9,26.2,85,90,60,35,37,89,"Roswaal Household"],
-["Garfiel Tinsel",2388.2,100,1088.2,3058.9,55,90,70,60,0,0,"Sanctuary"],
-["Elsa Granhiert",2687.3,0,16057.7,6187.3,65,99,80,83,0,0,"Independent"],
-["Sirius Romanée-conti",23.3,2000,8023.3,123.3,40,50,90,0,0,0,"Witch Cult"],
-["Balleroy Temeglyph (former)",160.8,2400,626.9,189.9,65,79,60,94,20,0,"Kingdom of Lugnica"],
-["Goz Ralfon",2089.4,0,1289.4,326.4,65,50,50,78,0,0,"Vollachian Empire"],
-["Groovy Gumlet",1188.9,0,825.9,659.7,40,50,50,60,0,0,"Vollachian Empire"],
-["Chisha Gold",559.1,0,925.4,188.4,75,70,90,44,0,0,"Vollachian Empire"],
-["Wilhelm van Astrea (Current)",1787.9,0,1758.5,1487.9,75,85,60,86,0,0,"Karsten Household"],
-["Clind",24.4,2400,1524.4,887.4,80,70,70,89,35,85,"Barielle Household"],
-["Fortuna",23.9,800,823.9,223.9,60,79,70,0,25,33,"Independent"],
-["Natsuki Subaru",23.4,5,523.4,623.4,70,99,80,54,15,21,"Emilia Camp"],
-["Petelgeuse Romanée-conti",52.9,1200,1022.9,122.9,30,10,40,0,0,0,"Witch Cult"],
-["Rem (Horned Peak)",1885.4,1400,2085.4,1655.5,68,70,70,76,10,49,"Roswaal Household"],
-["Crusch Karsten (Prime)",1585,850,1422,1285,70,70,80,73,0,0,"Karsten Household"],
-["Al (Aldebaran)",21.5,5,1121.5,154.4,95,100,70,93,30,95,"Priscilla Camp"],
-["Frederica Baumann",1184,0,1884,753.8,70,70,70,22,0,0,"Roswaal Household"],
-["Felt (Post-development)",53.2,0,320.5,1083.5,30,40,40,28,0,0,"Kingdom of Lugnica"],
-["Ricardo Welkin",1183,0,1783,652.6,50,70,30,46,0,0,"Iron Fang"],
-["Meili Portroute",19.5,0,19.5,19.5,30,70,50,0,0,0,"Witch Cult (Affiliate)"],
-["Felix (Ferris) Argyle",1003.5,3500,3.5,70,80,70,40,0,28,78,"Karsten Household"],
-["Mimi Pearlbaton",59.7,450,6.9,97,15,60,40,0,12,0,"Iron Fang"],
-["Mizelda",79.6,0,689.8,96,50,60,40,55,0,0,"Shudrak Tribe"],
-["Taritta",89.4,0,600,94,50,60,40,59,0,0,"Shudrak Tribe"],
-["Todd Fang",503,0,603,486.5,65,90,70,79,0,0,"Vollachian Empire"],
-["Jamal Aurélie",809.2,0,92,604,65,70,40,72,0,0,"Vollachian Empire"],
-["Zikr Osman",109.1,0,91,280,70,70,50,33,0,0,"Vollachian Empire"],
-["Otto Suwen",52.7,180,27,302.7,93,70,80,0,0,0,"Emilia Camp"],
-["Hetaro Pearlbaton",78.9,0,89,60,0,70,40,0,0,0,"Iron Fang"],
-["Tivey Pearlbaton",85.8,0,88,20.5,61,50,40,0,0,0,"Iron Fang"],
-["Serena Dracroy",72.4,0,24,50.7,40,50,30,77,0,0,"Independent"],
-["Rom (Cromwell, Current/Elderly)",90,0,90,6.1,91,70,70,56,0,0,"Ferris Tribe"],
-["Joshua Juukulius",18.8,0,25,5.9,20,60,60,0,0,0,"Juukulius Household"],
-["Medium O'connell",108.7,0,187,205.7,25,80,80,0,0,0,"Independent"],
-["Ryuzu Meyer / Clones (Birma, Delma, Alma, Bilma)",22,300,22,2.2,38,70,40,0,0,0,"Sanctuary"],
-["Echidna (Fox / Artificial Spirit)",40,0,4,4,50,70,30,0,20,0,"Roswaal Household"],
-["Petra Leyte",40,0,4,4,67,80,60,0,10,0,"Sanctuary"],
-["Annerose Miload",30,0,3,3,10,70,30,0,0,0,"Kingdom of Lugnica"],
-["Schult",30,0,3,3,60,70,50,0,0,0,"Barielle Household"],
-["Fourier Lugunica",30,0,3,3,50,70,30,0,0,0,"Kingdom of Lugnica"],
-["Kadomon Risch",30,0,3,3,43,70,30,0,0,0,"Kingdom of Lugnica"],
-["Damel",30,0,3,3,40,70,30,0,0,0,"Kingdom of Lugnica"],
-["Berstetz Fondalfon",30,0,3,3,30,70,30,0,0,0,"Kingdom of Lugnica"],
-["Vincent Vollachia",300,0,3,3,87,80,80,49,0,0,"Vollachian Empire"],
-["Flop O'connell",30,0,3,3,35,80,70,0,0,0,"Independent"],
-["Utakata / Holly / Tanza",300,0,3,3,58,70,50,0,0,0,"Shudrak / Chaosflame"],
-// Player Party (from Base Stats character sheets)
-["Yousif",60,0,43,100,60,60,60,0,23,0,"Player Party"],
-["Faisal (Siva)",33,0,30,40,100,100,100,0,37,0,"Independent / Unaffiliated"],
-["Alfredo",0,5,100,100,100,0,100,3,37,15,"Independent / Unaffiliated"],
-["Yandel",100,0,270,100,100,100,100,0,0,0,"Independent / Unaffiliated"],
-["John",100,0,90,100,50,40,20,3,18,0,"Independent / Unaffiliated"],
-["Michael",2,0,0,6,6,0,2,5,19,0,"Independent / Unaffiliated"]
+const tierTitles={"0": "Tier 0 — Transcendent Pinnacle", "1": "Tier 1 — Conceptual Masters & World Calamities", "2": "Tier 2 — Country-Level Calamities, Divine Generals & High Witches", "3": "Tier 3 — High Archbishops, Imperial Champions & Elite Mages", "4": "Tier 4 — Veteran Knights, Officers & Strategic Win-Conditions", "5": "Tier 5 — Skilled Mercenaries, Support Combatants & Officers", "6": "Tier 6 — Specialized Support (Combatants)", "NC": "Non-Combatant Roster", "PP": "Player Party"};
+// [tier, name, faction, [str, magStr, fort, agi, int, will, cha, wp, mtalent, mmastery, maxHP, maxSanity, power] (raw Base Stats text), wiki links]
+const charsData=[
+["0", "Reinhard van Astrea", "Kingdom of Lugnica / Astrea", ["911,828.7", "0 or (5,000)", "911,828.7", "411,828.7", "80", "100", "100", "100", "0", "0", "9,118,507", "200", "1,490,340"], [["Wiki", "https://rezero.fandom.com/wiki/Reinhard_van_Astrea"]]],
+["0", "Satella (Witch of Envy)", "Witch Cult (Original)", ["112,188.7", "100,000", "N/A", "59,997.8", "100", "100", "50", "0", "39", "0", "N/A", "200", "181,471"], [["Wiki", "https://rezero.fandom.com/wiki/Satella"]]],
+["1", "Reid Astrea (Prime)", "Astrea Household", ["257,618.6", "0", "20,000", "76,186", "70", "99", "40", "100", "0", "0", "200,220", "199", "235,881"], [["Wiki", "https://rezero.fandom.com/wiki/Reid_Astrea"]]],
+["1", "Volcanica (Prime, Divine Dragon)", "Volcanica", ["39,997.8", "45,000", "500,000", "4,598", "80", "69", "40", "0", "40", "100", "5,000,220", "169", "393,073"], [["Wiki", "https://rezero.fandom.com/wiki/Volcanica"]]],
+["1", "Cecilus Segmunt", "Vollachian Empire", ["27,760.2", "0", "9,000", "577,602", "50", "99", "60", "87", "0", "50", "90,220", "199", "409,586"], [["Wiki", "https://rezero.fandom.com/wiki/Cecilus_Segmunt"]]],
+["1", "Regulus Corneas", "Witch Cult", ["59.7", "0", "12,500", "659.7", "50", "80", "70", "0", "0", "0", "125,220", "180", "8,823"], [["Wiki", "https://rezero.fandom.com/wiki/Regulus_Corneas"]]],
+["1", "Sekhmet (Witch of Sloth)", "Witch Cult (Original)", ["4,601.1", "3,500(authority over reg magic output)", "1,200", "1.1", "50", "40", "40", "0", "0", "0", "12,220", "140", "6,207"], [["Wiki", "https://rezero.fandom.com/wiki/Sekhmet"]]],
+["1", "Ram (Full Potential)", "Roswaal Household", ["9,276.9", "12,000", "4,000", "71,300", "65", "70", "80", "70", "30", "78", "40,220", "170", "64,396"], [["Wiki", "https://rezero.fandom.com/wiki/Ram"]]],
+["1", "Pandora (Witch of Vainglory)", "Witch Cult (Original)", ["2,126.6", "0", "42", "226.6", "90", "90", "60", "0", "0", "0", "640", "190", "1,610"], [["Wiki", "https://rezero.fandom.com/wiki/Pandora"]]],
+["1", "Shaula (Sage's Guardian)", "Sage's Tower", ["3,103.9", "6,500", "6,000", "8,464.9", "60", "100", "80", "0", "20", "84", "60,220", "200", "16,059"], [["Wiki", "https://rezero.fandom.com/wiki/Shaula"]]],
+["2", "Sphinx", "Witch Cult", ["94.1", "8,800", "94.1", "94.1", "90", "77", "60", "0", "38", "93", "1,161", "177", "6,067"], [["Wiki", "https://rezero.fandom.com/wiki/Sphinx"]]],
+["2", "Hector (Warlock of Melancholy)", "Witch Cult", ["649.2", "11,000", "", "649.2", "64", "79", "40", "0", "0", "0", "", "179", "8,208"], [["Wiki", "https://rezero.fandom.com/wiki/Hector"]]],
+["2", "Puck (True Form)", "Great Spirits", ["10,098.3", "10,500", "50,000", "477.5", "80", "60", "80", "0", "30", "80", "500,220", "160", "47,395"], [["Wiki", "https://rezero.fandom.com/wiki/Puck"]]],
+["2", "Roswaal L. Mathers", "Mathers Household", ["3,086.8", "9,200", "-", "986.8", "85", "70", "80", "0", "36", "87", "", "170", "8,862"], [["Wiki", "https://rezero.fandom.com/wiki/Roswaal_L_Mathers"]]],
+["2", "Theresia van Astrea (Prime)", "Astrea Household", ["7,243.2", "0", "8,875.4", "7,243.2", "70", "80", "70", "99", "0", "0", "88,974", "180", "15,586"], [["Wiki", "https://rezero.fandom.com/wiki/Theresia_van_Astrea"]]],
+["2", "Arakiya", "Vollachian Empire", ["5,052.3", "6,000", "8,465.9", "15,052.3", "57", "30", "30", "40", "27", "74", "84,879", "130", "23,052"], [["Wiki", "https://rezero.fandom.com/wiki/Arakiya"]]],
+["2", "Olbart Dunkelkenn", "Vollachian Empire", ["2,353", "", "1,009.7", "23,523.9", "55", "60", "70", "80", "30", "77", "10,317", "160", "17,934"], [["Wiki", "https://rezero.fandom.com/wiki/Olbart_Dunkelkenn"]]],
+["2", "Typhon (Witch of Pride)", "Witch Cult", ["695.3", "0", "95.3", "695.3", "40", "70", "60", "0", "0", "0", "1,173", "170", "999"], [["Wiki", "https://rezero.fandom.com/wiki/Typhon"]]],
+["2", "Echidna (Witch of Greed)", "Witch Cult (Original)", ["478.6", "8,000", "78.6", "478.6", "100", "90", "70", "0", "40", "100", "1,006", "100", "6,038"], [["Wiki", "https://rezero.fandom.com/wiki/Echidna"]]],
+["2", "Capella Emerada Lugunica", "Witch Cult", ["1,195.6", "0", "195.6-17,000", "788.5-30,000", "30", "50", "60", "0", "0", "0", "N/A", "100", "803"], [["Wiki", "https://rezero.fandom.com/wiki/Capella_Emerada_Lugunica"]]],
+["2", "Yorna Mishigure", "Vollachian Empire", ["235", "4,000", "265", "235", "84", "85", "80", "0", "17", "37", "2,870", "100", "3,170"], [["Wiki", "https://rezero.fandom.com/wiki/Yorna_Mishigure"]]],
+["2", "Daphne (Witch of Gluttony)", "Witch Cult", ["230.5", "0", "230.5", "230.5", "43", "90", "30", "0", "0", "0", "2,525", "100", "469"], [["Wiki", "https://rezero.fandom.com/wiki/Daphne"]]],
+["2", "Moguro Hagane", "Vollachian Empire", ["856", "6,000", "15,000", "557.2", "45", "40", "40", "0", "20", "67", "150,220", "100", "14,947"], [["Wiki", "https://rezero.fandom.com/wiki/Moguro_Hagane"]]],
+["2", "Minerva (Witch of Wrath)", "Witch Cult", ["851.5", "0", "851.5", "221.5", "40", "69", "70", "0", "0", "0", "8,735", "100", "1,292"], [["Wiki", "https://rezero.fandom.com/wiki/Minerva"]]],
+["2", "Carmilla (Witch of Lust)", "Witch Cult", ["217", "0", "17", "217", "40", "30", "99", "0", "0", "0", "390", "100", "309"], [["Wiki", "https://rezero.fandom.com/wiki/Carmilla"]]],
+["2", "Hallibel", "Vollcahia (the Admirier)", ["7,000", "7,000", "10,000", "50,000", "85", "80", "70", "93", "38", "83", "100,220", "100", "49,346"], [["Wiki", "https://rezero.fandom.com/wiki/Halibel"]]],
+["3", "Ley Batenkaitos", "Witch Cult", ["5,334.8", "4,500", "1,400", "3,034.8", "65", "50", "30", "43", "20", "50", "14,220", "100", "9,520"], [["Wiki", "https://rezero.fandom.com/wiki/Lye_Batenkaitos"]]],
+["3", "Roy Alphard", "Witch Cult", ["6,196.8", "5,000", "3,038", "4,069.2", "70", "50", "30", "90", "22", "52", "30,600", "100", "12,210"], [["Wiki", "https://rezero.fandom.com/wiki/Roy_Alphard"]]],
+["3", "Louis Arneb", "Witch Cult", ["32.8", "42.4", "80", "32.8", "80", "80", "70", "20", "25", "59", "1,020", "100", "138"], [["Wiki", "https://rezero.fandom.com/wiki/Louis_Arneb"]]],
+["3", "Stride Vollachia (former)", "Vollachian Empire", ["94.9", "-", "31.9", "31.9", "65", "0", "80", "0", "0", "0", "539", "100", "112"], [["Wiki", "https://rezero.fandom.com/wiki/Stride_Vollachia"]]],
+["3", "Kafma Irulux", "Independent", ["2,093.9", "1,200", "12,500", "2,065.7", "60", "60", "50", "86", "14", "36", "125,220", "100", "11,915"], [["Wiki", "https://rezero.fandom.com/wiki/Kafma_Irulux"]]],
+["3", "Madelyn Eschart", "Vollachian Empire", ["2,264.6", "2,600", "5,993", "1,493", "40", "70", "70", "0", "10", "20", "60,150", "100", "8,243"], [["Wiki", "https://rezero.fandom.com/wiki/Madelyn_Eschart"]]],
+["3", "Priscilla Barielle", "Barielle Household", ["1,092", "3,200", "2,229", "1,029", "80", "90", "80", "80", "10", "20", "22,510", "100", "5,047"], [["Wiki", "https://rezero.fandom.com/wiki/Priscilla_Barielle"]]],
+["3", "Julius Juukulius (Peak)", "Juukulius Household", ["62.3", "2,900", "1,828.1", "891.1", "76", "70", "70", "85", "0", "0", "18,501", "100", "3,799"], [["Wiki", "https://rezero.fandom.com/wiki/Julius_Juukulius"]]],
+["3", "Emilia (Peak Potential)", "Kingdom of Lugnica", ["4,027.1", "7,200", "8,007.1", "1,027.1", "50", "80", "50", "60", "15", "33", "80,291", "100", "13,516"], [["Wiki", "https://rezero.fandom.com/wiki/Emilia"]]],
+["3", "Beatrice (Full Mana Reserve)", "Roswaal Household", ["26.2", "9,900", "59.9", "26.2", "85", "90", "60", "35", "37", "89", "819", "100", "6,687"], [["Wiki", "https://rezero.fandom.com/wiki/Beatrice"]]],
+["3", "Garfiel Tinsel", "Sanctuary", ["2,388.2", "100", "1,088.2", "3,058.9", "55", "90", "70", "60", "0", "0", "11,102", "100", "4,435"], [["Wiki", "https://rezero.fandom.com/wiki/Garfiel_Tinsel"]]],
+["3", "Elsa Granhiert", "Independent", ["2,687.3", "0 (physical only)", "16,057.7", "6,187.3", "65", "99", "80", "83", "0", "0", "160,797", "100", "16,635"], [["Wiki", "https://rezero.fandom.com/wiki/Elsa_Granhiert"]]],
+["3", "Sirius Romanée-conti", "Witch Cult", ["23.3", "2,000", "8,023.3", "123.3", "40", "50", "90", "0", "0", "0", "80,453", "70", "6,789"], [["Wiki", "https://rezero.fandom.com/wiki/Sirius_Romanée-Conti"]]],
+["4", "Balleroy Temeglyph (former)", "Kingdom of Lugnica", ["160.8", "2,400", "626.9", "189.9", "65", "79", "60", "94", "20", "0", "6,489", "100", "2,262"], [["Wiki", "https://rezero.fandom.com/wiki/Balleroy_Temeglyph"]]],
+["4", "Goz Ralfon", "Vollachian Empire", ["2,089.4", "0", "1,289.4", "326.4", "65", "50", "50", "78", "0", "0", "13,114", "100", "2,478"], [["Wiki", "https://rezero.fandom.com/wiki/Goz_Ralfon"]]],
+["4", "Groovy Gumlet", "Vollachian Empire", ["1,188.9", "0", "825.9", "659.7", "40", "50", "50", "60", "0", "0", "8,479", "100", "1,789"], [["Wiki", "https://rezero.fandom.com/wiki/Groovy_Gumlet"]]],
+["4", "Chisha Gold", "Vollachian Empire", ["559.1", "0", "925.4", "188.4", "75", "70", "90", "44", "0", "0", "9,474", "100", "1,128"], [["Wiki", "https://rezero.fandom.com/wiki/Chisha_Gold"]]],
+["4", "Wilhelm van Astrea (Current)", "Karsten Household", ["1,787.9", "0", "1,758.5", "1,487.9", "75", "85", "60", "86", "0", "0", "17,805", "100", "3,368"], [["Wiki", "https://rezero.fandom.com/wiki/Wilhelm_van_Astrea"]]],
+["4", "Clind", "Barielle Household", ["24.4", "2,400", "1,524.4", "887.4", "80", "70", "70", "89", "35", "85", "15,464", "100", "3,236"], [["Wiki", "https://rezero.fandom.com/wiki/Clind"]]],
+["4", "Fortuna", "Independent", ["23.9", "800 (elf lmao)", "823.9", "223.9", "60", "79", "70", "0", "25", "33", "8,459", "100", "1,259"], [["Wiki", "https://rezero.fandom.com/wiki/Fortuna"]]],
+["4", "Natsuki Subaru", "Emilia Camp", ["23.4", "5", "523.4", "623.4", "70", "99", "80", "54", "15", "21", "5,454", "100", "797"], [["Wiki", "https://rezero.fandom.com/wiki/Natsuki_Subaru"]]],
+["4", "Petelgeuse Romanée-conti", "Witch Cult", ["52.9", "1,200", "1,022.9", "122.9", "30", "10", "40", "0", "0", "0", "10,449", "50", "1,601"], [["Wiki", "https://rezero.fandom.com/wiki/Petelgeuse_Romanée-Conti"]]],
+["4", "Rem (Horned Peak)", "Roswaal Household", ["1,885.4", "1,400", "2,085.4", "1,655.5", "68", "70", "70", "76", "10", "49", "21,074", "100", "4,695"], [["Wiki", "https://rezero.fandom.com/wiki/Rem"]]],
+["4", "Crusch Karsten (Prime)", "Karsten Household", ["1,585", "850", "1,422", "1,285", "70", "70", "80", "73", "0", "0", "14,440", "100", "3,440"], [["Wiki", "https://rezero.fandom.com/wiki/Crusch_Karsten"]]],
+["4", "Al (Aldebaran)", "Priscilla Camp", ["21.5", "5", "1,121.5", "154.4", "95", "100", "70", "93", "30", "95", "11,435", "100", "883"], [["Wiki", "https://rezero.fandom.com/wiki/Al"]]],
+["4", "Frederica Baumann", "Roswaal Household", ["1,184", "0", "1,884", "753.8", "70", "70", "70", "22", "0", "0", "19,060", "100", "2,559"], [["Wiki", "https://rezero.fandom.com/wiki/Frederica_Baumann"]]],
+["4", "Felt (Post-development)", "Kingdom of Lugnica", ["53.2", "0", "320.5", "1,083.5", "30", "40", "40", "28", "0", "0", "3,425", "100", "976"], [["Wiki", "https://rezero.fandom.com/wiki/Felt"]]],
+["4", "Ricardo Welkin", "Iron Fang", ["1,183", "0", "1,783", "652.6", "50", "70", "30", "46", "0", "0", "18,050", "100", "2,419"], [["Wiki", "https://rezero.fandom.com/wiki/Ricardo_Welkin"]]],
+["4", "Meili Portroute", "Witch Cult (Affiliate)", ["19.5", "0", "19.5", "19.5", "30", "70", "50", "0", "0", "0", "415", "100", "46"], [["Wiki", "https://rezero.fandom.com/wiki/Meili_Portroute"]]],
+["5", "Felix (Ferris) Argyle", "Karsten Household", ["1,003.5", "3,500 (technically hes top 3 healer)", "3.5", "70", "80", "70", "40", "0", "28", "78", "255", "100", "3,061"], [["Wiki", "https://rezero.fandom.com/wiki/Ferris"]]],
+["5", "Mimi Pearlbaton", "Iron Fang", ["59.7", "450", "6.9", "97", "15", "60", "40", "0", "12", "0", "289", "100", "414"], [["Wiki", "https://rezero.fandom.com/wiki/Mimi_Pearlbaton"]]],
+["5", "Mizelda", "Shudrak Tribe", ["79.6", "0", "689.8", "96", "50", "60", "40", "55", "0", "0", "7,118", "100", "584"], [["Wiki", "https://rezero.fandom.com/wiki/Mizelda_Shudrak"]]],
+["5", "Taritta", "Shudrak Tribe", ["89.4", "0", "600", "94", "50", "60", "40", "59", "0", "0", "6,220", "100", "529"], [["Wiki", "https://rezero.fandom.com/wiki/Taritta_Shudrak"]]],
+["5", "Todd Fang", "Vollachian Empire", ["503", "0", "603", "486.5", "65", "90", "70", "79", "0", "0", "6,250", "100", "1,074"], [["Wiki", "https://rezero.fandom.com/wiki/Todd_Fang"]]],
+["5", "Jamal Aurélie", "Vollachian Empire", ["809.2", "0", "92", "604", "65", "70", "40", "72", "0", "0", "1,140", "100", "1,012"], [["Wiki", "https://rezero.fandom.com/wiki/Jamal_Aurélie"]]],
+["5", "Zikr Osman", "Vollachian Empire", ["109.1", "0", "91", "280", "70", "70", "50", "33", "0", "0", "1,130", "100", "330"], [["Wiki", "https://rezero.fandom.com/wiki/Zikr_Osman"]]],
+["5", "Otto Suwen", "Emilia Camp", ["52.7", "180", "27", "302.7", "93", "70", "80", "0", "0", "0", "490", "100", "388"], [["Wiki", "https://rezero.fandom.com/wiki/Otto_Suwen"]]],
+["5", "Hetaro Pearlbaton", "Iron Fang", ["78.9", "0", "89", "60", "0", "70", "40", "0", "0", "0", "1,110", "100", "156"], [["Wiki", "https://rezero.fandom.com/wiki/Hetaro_Pearlbaton"]]],
+["5", "Tivey Pearlbaton", "Iron Fang", ["85.8", "0", "88", "20.5", "61", "50", "40", "0", "0", "0", "1,100", "100", "136"], [["Wiki", "https://rezero.fandom.com/wiki/Tivey_Pearlbaton"]]],
+["5", "Serena Dracroy", "Independent", ["72.4", "0", "24", "50.7", "40", "50", "30", "77", "0", "0", "460", "100", "103"], [["Wiki", "https://rezero.fandom.com/wiki/Serena_Dracroy"]]],
+["6", "Rom (Cromwell, Current/Elderly)", "Ferris Tribe", ["90", "0", "90", "6.1", "91", "70", "70", "56", "0", "0", "1,120", "100", "136"], [["Wiki", "https://rezero.fandom.com/wiki/Rom"]]],
+["6", "Joshua Juukulius", "Juukulius Household", ["18.8", "0", "25", "5.9", "20", "60", "60", "0", "0", "0", "470", "100", "39"], [["Wiki", "https://rezero.fandom.com/wiki/Joshua_Juukulius"]]],
+["6", "Medium O'connell", "Independent", ["108.7", "0", "187", "205.7", "25", "80", "80", "0", "0", "0", "2,090", "100", "343"], [["Wiki", "https://rezero.fandom.com/wiki/Medium_O'Connell"]]],
+["6", "Ryuzu Meyer / Clones (Birma, Delma, Alma, Bilma)", "Sanctuary", ["22", "300", "22", "2.2", "38", "70", "40", "0", "0", "0", "440", "100", "238"], [["Wiki", "https://rezero.fandom.com/wiki/Ryuzu_Meyer"]]],
+["6", "Unnamed (Emilia Camp)", "Emilia Camp", ["84", "0", "84.9", "5.3", "50", "70", "60", "0", "0", "0", "1,069", "100", "125"], []],
+["NC", "Echidna (Fox / Artificial Spirit)", "Roswaal Household", ["40", "", "4", "4", "50", "70", "30", "0", "20", "0", "224", "100", "10"], [["Wiki", "https://rezero.fandom.com/wiki/Echidna"]]],
+["NC", "Petra Leyte", "Sanctuary", ["40", "", "4", "4", "67", "80", "60", "0", "10", "0", "224", "100", "14"], [["Wiki", "https://rezero.fandom.com/wiki/Petra_Leyte"]]],
+["NC", "Annerose Miload", "Kingdom of Lugnica", ["30", "0", "3", "3", "10", "70", "30", "0", "0", "0", "223", "100", "7"], [["Wiki", "https://rezero.fandom.com/wiki/Annerose_Miload"]]],
+["NC", "Schult", "Barielle Household", ["30", "0", "3", "3", "60", "70", "50", "0", "0", "0", "223", "100", "11"], [["Wiki", "https://rezero.fandom.com/wiki/Schult"]]],
+["NC", "Fourier Lugunica", "Kingdom of Lugnica", ["30", "0", "3", "3", "50", "70", "30", "0", "0", "0", "223", "100", "9"], [["Wiki", "https://rezero.fandom.com/wiki/Fourier_Lugunica"]]],
+["NC", "Kadomon Risch", "Kingdom of Lugnica", ["30", "0", "3", "3", "43", "70", "30", "0", "0", "0", "223", "100", "9"], [["Wiki", "https://rezero.fandom.com/wiki/Kadomon_Risch"]]],
+["NC", "Damel", "Kingdom of Lugnica", ["30", "0", "3", "3", "40", "70", "30", "0", "0", "0", "223", "100", "9"], []],
+["NC", "Berstetz Fondalfon", "Kingdom of Lugnica", ["30", "0", "3", "3", "30", "70", "30", "0", "0", "0", "223", "100", "8"], [["Wiki", "https://rezero.fandom.com/wiki/Berstetz_Fondalfon"]]],
+["NC", "Vincent Vollachia", "Vollachian Empire", ["300", "0", "3", "3", "87", "80", "80", "49", "0", "0", "223", "100", "34"], [["Wiki", "https://rezero.fandom.com/wiki/Vincent_Vollachia"]]],
+["NC", "Flop O'connell", "Independent", ["30", "0", "3", "3", "35", "80", "70", "0", "0", "0", "223", "100", "12"], [["Wiki", "https://rezero.fandom.com/wiki/Flop_O'Connell"]]],
+["NC", "Utakata / Holly / Tanza", "Shudrak / Chaosflame", ["300", "0", "3", "3", "58", "70", "50", "0", "0", "0", "223", "100", "29"], [["Utakata", "https://rezero.fandom.com/wiki/Utakata"], ["Holly", "https://rezero.fandom.com/wiki/Holly"], ["Tanza", "https://rezero.fandom.com/wiki/Tanza"]]],
+["PP", "Yousif", "—", ["60", "0", "43", "100", "60", "60", "60", "0", "23", "0", "263", "160", "22"], []],
+["PP", "Faisal (Siva)", "Independent / Unaffiliated", ["33", "0", "30", "40", "100", "100", "100", "0", "37", "0", "250", "200", "0"], []],
+["PP", "Alfredo", "Independent / Unaffiliated", ["0", "5", "100", "100", "100", "0", "100", "3", "37", "15", "320", "100", "0"], []],
+["PP", "Yandel", "Independent / Unaffiliated", ["100", "0", "270", "100", "100", "100", "100", "0", "0", "0", "490", "200", "0"], []],
+["PP", "John", "Independent / Unaffiliated", ["100", "0", "90", "100", "50", "40", "20", "3", "18", "0", "310", "140", "0"], []],
+["PP", "Michael", "Independent / Unaffiliated", ["2", "0", "0", "6", "6", "0", "2", "5", "19", "0", "220", "100", "0"], []]
 ];
-function mkChar(a){
-  const c={name:a[0],str:+a[1],magStr:+a[2],fort:+a[3],agi:+a[4],int:+a[5],will:+a[6],cha:+a[7],wp:+a[8],mt:+a[9],mm:+a[10],faction:a[11]||"Player"};
-  c.maxHp=rnd(220+c.fort); c.curHp=c.maxHp; c.curMp=c.mm; return c;
-}
+const abilityLinks=[["Authority", "https://rezero.fandom.com/wiki/Authority"], ["Magic", "https://rezero.fandom.com/wiki/Magic"], ["Enchanted Sword", "https://rezero.fandom.com/wiki/Enchanted_Sword"]];
 
-// Exact source annotations for Base Stats entries that intentionally contain a choice,
-// range, N/A, or explanatory text instead of a single numeric combat value.
-const baseStatNotes={
-  "Reinhard van Astrea":{magStr:"0 or (5,000)"},
-  "Satella (Witch of Envy)":{fort:"N/A"},
-  "Sekhmet (Witch of Sloth)":{magStr:"3,500 (authority over reg magic output)"},
-  "Hector (Warlock of Melancholy)":{fort:"N/A / blank in source"},
-  "Roswaal L. Mathers":{fort:"N/A / blank in source"},
-  "Olbart Dunkelkenn":{magStr:"N/A / blank in source"},
-  "Capella Emerada Lugunica":{fort:"195.6–17,000",agi:"788.5–30,000"},
-  "Stride Vollachia (former)":{magStr:"N/A / blank in source"},
-  "Elsa Granhiert":{magStr:"0 (physical only)"},
-  "Fortuna":{magStr:"800 (elf lmao)"},
-  "Felix (Ferris) Argyle":{magStr:"3,500 (technically hes top 3 healer)"},
-  "Echidna (Fox / Artificial Spirit)":{magStr:"N/A / blank in source"},
-  "Petra Leyte":{magStr:"N/A / blank in source"}
-};
-const state={chars:charsRaw.map(mkChar),atkIdx:46,defIdx:43,spellIdx:-1,defActionIdx:0,factionFilter:"all",lastRoll:null,lastBands:null};
+// Numeric value used for combat maths: first number in the source text (ranges use the low end, N/A/blank/"-" use 0).
+const parseNum=s=>{const m=String(s==null?"":s).match(/\d[\d,]*\.?\d*|\.\d+/);return m?parseFloat(m[0].replace(/,/g,"")):0;};
+const hasNum=s=>/\d/.test(String(s==null?"":s));
+const STAT_KEYS=["str","magStr","fort","agi","int","will","cha","wp","mt","mm","maxHp","maxSanity","power"];
+function mkChar(tier,name,faction,raws,links){
+  const c={tier,name,faction:faction||"Player",links:links||[],raw:{}};
+  STAT_KEYS.forEach((k,i)=>{c.raw[k]=String(raws[i]==null?"":raws[i]).trim();});
+  ["str","magStr","fort","agi","int","will","cha","wp","mt","mm"].forEach(k=>{c[k]=parseNum(c.raw[k]);});
+  // Max HP is the value LISTED in Base Stats. It is never derived from Fortitude. N/A / blank = no HP number exists.
+  c.maxHp=hasNum(c.raw.maxHp)?parseNum(c.raw.maxHp):null;
+  c.curHp=c.maxHp===null?0:c.maxHp; c.taken=0; c.curMp=c.mm; c.abil=[]; c.active={};
+  return c;
+}
+const rawShow=v=>v===""?"blank in source":v;
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const state={chars:charsData.map(r=>mkChar(...r)),atkIdx:0,defIdx:0,spellIdx:-1,defActionIdx:0,factionFilter:"all",tierFilter:"all",lastRoll:null,lastBands:null};
+state.atkIdx=state.chars.findIndex(c=>c.name==="Natsuki Subaru");
+state.defIdx=state.chars.findIndex(c=>c.name==="Wilhelm van Astrea (Current)");
+
+// ===== Abilities: weapons, authorities, divine protections — each with modifiers =====
+// mods: dmgMult/flat/ignoreFort/bypass/unless/acc apply when the holder ATTACKS; dc/taken apply when the holder DEFENDS.
+// bypass makes some defense outcomes become a plain Successful Hit; it is cancelled if the defender has an ACTIVE ability
+// whose name contains any "unless" entry (that is how "unblockable except vs Dragon Sword Reid" works).
+const KIND={weapon:"Weapon",auth:"Authority",dp:"Divine Protection"};
+const BYPASS={none:{label:"No bypass",skip:[]},
+ block:{label:"Unblockable (skips Perfect Guard & Block)",skip:["Perfect Guard","Block"]},
+ evade:{label:"Undodgeable (skips Evade & Miss)",skip:["Evade","Miss"]},
+ all:{label:"Unavoidable (skips every defense)",skip:["Perfect Guard","Evade","Miss","Block"]}};
+const MODS0=()=>({dmgMult:1,flat:0,ignoreFort:false,bypass:"none",unless:[],acc:0,dc:0,taken:1});
+const nv=(v,d)=>{const x=parseFloat(v);return isNaN(x)?d:x;};
+const catalog={}; let abilN=0, EFF=null;
+function addAbility(kind,name,note,mods){const id="k"+(++abilN);return catalog[id]={id,kind,name,note:note||"",mods:{...MODS0(),...(mods||{})}};}
+function grant(c,id){if(!c.abil.includes(id))c.abil.push(id);}
+// [kind, name, holders (name prefixes), note, preset mods]. Presets are neutral (no numbers invented) except the one flagged example.
+const abilData=[
+["dp","Sword Saint",["Reinhard","Theresia"],"Maximizes sword skill, shows optimal attack/defense lines"],
+["dp","Wind Evasion",["Reinhard"]],["dp","Phoenix",["Reinhard"],"Revival"],["dp","Phoenix Next",["Reinhard"],"Revival"],
+["dp","Telepathy",["Reinhard"]],["dp","Judgment",["Reinhard"]],["dp","First Sight",["Reinhard"]],["dp","Second Sight",["Reinhard"]],
+["dp","Anti-Magic Variants",["Reinhard"]],["dp","Elemental Resistances/Avoidances",["Reinhard"],"Reinhard has 250+ — add more as custom"],
+["dp","Death God",["Theresia"],"Wounds can't fully heal; reopened by proximity"],
+["dp","Wind Reading (Wind Indication)",["Crusch"],"Reads wind, invisible things, emotions/lies"],
+["dp","Durability (armor)",["Crusch"],"Engraved on her armor"],
+["dp","Soul of Language (Kotodama)",["Otto"],"Speaks with animals; nosebleeds/isolation from overuse"],
+["dp","Earth Spirits",["Garfiel"],"Earth armor/barrier while grounded; faster recovery"],
+["dp","Water",["Felix"],"Water/healing magic aptitude"],["dp","Sun",["Priscilla"],"Buffs while under the sun"],
+["dp","Trisection",["Mimi","Hetaro","Tivey"],"Share burdens/damage; can split fatal blows"],
+["dp","Gathering Spirits",["Julius"],"Sees/talks to spirits"],["dp","Demon Manipulation",["Meili"],"Controls witchbeasts, limited"],
+["dp","Clairvoyance",["Ram"],"Non-canon/web-novel note in some sources"],
+["weapon","Dragon Sword Reid",["Reinhard","Reid"],"Ten Swords of Power; indestructible, cuts nearly anything"],
+["weapon","Chopsticks",["Reid"],"Reid casually used them as weapons"],
+["weapon","Fiend Sword Murasame",["Cecilus"],"Severs the \"point\"/essence of things"],["weapon","Dream Sword Masayume",["Cecilus"]],
+["weapon","High-Quality Blade(s)",["Theresia","Wilhelm","Olbart"],"Wilhelm often dual-wields"],
+["weapon","Yang Sword Vollachia",["Priscilla","Vincent","Stride"],"Materializes from thin air; tied to Vollachian throne"],
+["weapon","Gutting Blades",["Elsa"],"Curved blades/knives; cursed traits in some depictions"],
+["weapon","Spirit-Assisted Knight's Sword",["Julius"]],["weapon","Dual Shields",["Garfiel"],"Often used offensively"],["weapon","Claws",["Garfiel"],"Partial beastification"],
+["weapon","Morning Star / Flail",["Rem"]],["weapon","Staff",["Ram"]],["weapon","Heavy Axe",["Ricardo"]],
+["weapon","Flying Winged Blade",["Balleroy"]],["weapon","Sword (improvised)",["Al ("]],
+["auth","Sloth (Invisible Providence)",["Natsuki"],"Limited Unseen Hand"],["auth","Greed (Cor Leonis variant)",["Natsuki"],"Burden sharing"],
+["auth","Return by Death",["Natsuki"],"Tied to Envy/Satella"],["auth","Envy",["Satella"],"Shadows, possession"],
+["auth","Sloth",["Sekhmet"],"Invisible telekinetic force"],["auth","Sloth (Unseen Hands)",["Petelgeuse"]],
+["auth","Greed (Lion's Heart)",["Regulus"],"PRESET EXAMPLE: unblockable unless the defender has Dragon Sword Reid active. Edit freely.",{bypass:"block",unless:["Dragon Sword Reid"]}],
+["auth","Greed (Book of Wisdom)",["Echidna (Witch"]],["auth","Vainglory",["Pandora"],"Reality rewriting"],
+["auth","Melancholy",["Hector","Clind","Petra"],"Later borrowed by Clind and (once) Petra"],
+["auth","Pride",["Typhon"]],["auth","Gluttony (witchbeasts)",["Daphne"]],["auth","Gluttony (names/memories)",["Ley","Roy","Louis"],"Louis/Spica: extra stomach manifestations"],
+["auth","Lust (Variation and Change)",["Capella"]],["auth","Lust (love/attraction)",["Carmilla"]],
+["auth","Wrath (sharing/resonance)",["Sirius"]],["auth","Wrath (forced healing)",["Minerva"],"Cannot deal damage — set dmg × to 0 if you want that"],
+["auth","Hubristic Ten Commandments",["Stride"],"Ring-based cursing/puppetry"],["auth","Unnamed Authority (loop variant)",["Al ("]]
+];
+abilData.forEach(([k,n,who,note,mods])=>{const ab=addAbility(k,n,note,mods);who.forEach(p=>state.chars.forEach(c=>{if(c.name.startsWith(p))grant(c,ab.id);}));});
+const magicData=[["Roswaal","All six elements; can cast from multiple body parts"],["Emilia","Fire + Water; ice magic (Huma variants)"],
+["Beatrice","Yin (Shamak to Al Shamak) + some Fire/support; huge mana pool"],["Puck","Fire (ice specialty) + spirit arts"],["Ram","Wind (Fura variants), limited others"],
+["Rem","Water (healing, ice) + physical enhancement"],["Felix","Water (elite healing)"],["Julius","Six quasi-spirits, multi-element; spirit arts + swordsmanship"],
+["Crusch","Wind"],["Otto","Limited Yang support"],["Garfiel","Minimal; Earth comes from his Divine Protection"],["Sphinx","Advanced/forbidden multi-element"],
+["Echidna (Witch","Advanced/forbidden magic, rituals, experimental spells"],["Petelgeuse","Limited; Authority-based"],["Natsuki","Very limited; Authorities + Beatrice's Shamak"],
+["Reinhard,Reid,Cecilus,Wilhelm,Elsa","Little/no conventional magic; Flow Method or pure skill"]];
+const magicNote=c=>{const m=magicData.find(([k])=>k.split(",").some(p=>c.name.startsWith(p)));return m?m[1]:"";};
+const blankForm=()=>({id:null,kind:"auth",name:"",note:"",bypass:"none",unless:"",dmgMult:1,flat:0,acc:0,dc:0,taken:1,ignoreFort:false,grant:"atk"});
+state.form=blankForm(); state.formOpen=false;
+
+function activeList(c){return c.abil.filter(id=>c.active[id]).map(id=>catalog[id]);}
+function calcEff(a,d){
+  const A=activeList(a),D=activeList(d),e={dmg:1,flat:0,ign:false,acc:0,dc:0,taken:1,skip:new Set(),notes:[]};
+  A.forEach(x=>{const m=x.mods;e.dmg*=m.dmgMult;e.flat+=m.flat;e.ign=e.ign||m.ignoreFort;e.acc+=m.acc;
+    if(m.bypass!=="none"){
+      const neg=D.find(y=>m.unless.some(u=>y.name.toLowerCase().includes(u.toLowerCase())));
+      if(neg) e.notes.push(`${x.name} (${BYPASS[m.bypass].label}) is negated by the defender's ${neg.name}.`);
+      else{BYPASS[m.bypass].skip.forEach(n=>e.skip.add(n));e.notes.push(`${x.name}: ${BYPASS[m.bypass].label}.`);}
+    }});
+  D.forEach(x=>{e.dc+=x.mods.dc;e.taken*=x.mods.taken;});
+  return e;
+}
+function modSummary(m){const s=[];
+  if(m.dmgMult!==1)s.push(`dmg ×${m.dmgMult}`);if(m.flat)s.push(`${m.flat>0?"+":""}${m.flat} dmg`);if(m.ignoreFort)s.push("ignores Fort");
+  if(m.bypass!=="none")s.push(BYPASS[m.bypass].label.split(" (")[0]+(m.unless.length?` except vs ${m.unless.join("/")}`:""));
+  if(m.acc)s.push(`accuracy ${m.acc>0?"+":""}${m.acc}`);if(m.dc)s.push(`defense DC ${m.dc>0?"+":""}${m.dc}`);if(m.taken!==1)s.push(`takes ×${m.taken}`);
+  return s.length?"· "+s.join(", "):"· no modifiers";}
+function abilPanel(c,role,who){
+  const mine=c.abil.map(id=>catalog[id]),have=new Set(c.abil),kinds=Object.keys(KIND);
+  const rows=kinds.map(k=>{const l=mine.filter(x=>x.kind===k);return l.length?`<div class="ak">${KIND[k]}s</div>`+l.map(x=>
+    `<label class="ab"><input type="checkbox" ${c.active[x.id]?"checked":""} onchange="toggleAbil('${who}','${x.id}')"> <b>${esc(x.name)}</b> <span>${esc(modSummary(x.mods))}${x.note?" — "+esc(x.note):""}</span> <a href="#" onclick="editAbil('${x.id}');return false">edit</a> <a href="#" onclick="dropAbil('${who}','${x.id}');return false">remove</a></label>`).join(""):"";}).join("");
+  const opts=kinds.map(k=>`<optgroup label="${KIND[k]}s">`+Object.values(catalog).filter(x=>x.kind===k&&!have.has(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")+`</optgroup>`).join("");
+  const mg=magicNote(c);
+  return `<div class="panel"><b>${role}: ${esc(c.name)}</b>${mg?`<div class="sub" style="margin:2px 0 0">Magic: ${esc(mg)}</div>`:""}
+  ${rows||'<div class="sub">No listed abilities — add one below.</div>'}
+  <select style="margin-top:8px" onchange="giveAbil('${who}',this.value)"><option value="">＋ Give an ability from the catalog…</option>${opts}</select></div>`;
+}
+function abilForm(){
+  const f=state.form,sel=(a,b)=>a===b?"selected":"";
+  const num=(k,l,t)=>`<div class="col" style="flex-basis:120px"><label>${l}</label><input type="number" step="any" value="${f[k]}" oninput="state.form.${k}=this.value" title="${t}"></div>`;
+  return `<details class="panel" ${state.formOpen?"open":""} ontoggle="state.formOpen=this.open"><summary>${f.id?"Editing: "+esc(f.name):"Create a custom authority, divine protection or weapon"}</summary>
+  <div class="row" style="margin-top:8px">
+   <div class="col" style="flex-basis:170px"><label>name</label><input type="text" value="${esc(f.name)}" oninput="state.form.name=this.value"></div>
+   <div class="col" style="flex-basis:150px"><label>type</label><select onchange="state.form.kind=this.value">${Object.keys(KIND).map(k=>`<option value="${k}" ${sel(f.kind,k)}>${KIND[k]}</option>`).join("")}</select></div>
+   <div class="col" style="flex-basis:250px"><label>when attacking: skip defenses</label><select onchange="state.form.bypass=this.value">${Object.keys(BYPASS).map(k=>`<option value="${k}" ${sel(f.bypass,k)}>${BYPASS[k].label}</option>`).join("")}</select></div>
+   <div class="col" style="flex-basis:250px"><label>…except if the defender has ACTIVE (names, comma-separated)</label><input type="text" placeholder="Dragon Sword Reid" value="${esc(f.unless)}" oninput="state.form.unless=this.value"></div>
+  </div>
+  <div class="row">${num("dmgMult","damage ×","Multiplies the attacker's damage. 0 = deals no damage")}${num("flat","flat damage +","Added after Fortitude reduction")}${num("acc","accuracy +","Attacker: lowers the defense DC")}${num("dc","defense DC +","Defender: makes it harder to be hit")}${num("taken","damage taken ×","Defender: multiplies damage received")}</div>
+  <label class="chk"><input type="checkbox" ${f.ignoreFort?"checked":""} onchange="state.form.ignoreFort=this.checked"> ignores the defender's Fortitude damage reduction (attacker)</label>
+  <div class="row"><div class="col"><label>note</label><input type="text" value="${esc(f.note)}" oninput="state.form.note=this.value"></div>
+   <div class="col" style="flex-basis:150px"><label>give it to</label><select onchange="state.form.grant=this.value"><option value="atk" ${sel(f.grant,"atk")}>Attacker</option><option value="def" ${sel(f.grant,"def")}>Defender</option><option value="none" ${sel(f.grant,"none")}>Nobody (catalog only)</option></select></div></div>
+  <div style="margin-top:8px"><button onclick="saveAbil()">${f.id?"Save changes":"Add ability"}</button> <button class="secondary" onclick="state.form=blankForm();render()">Clear / new</button></div>
+  <small class="note">Offensive fields (damage, flat, accuracy, skip defenses, ignores Fortitude) apply when the holder is the attacker and the ability is ticked active; defensive fields (defense DC, damage taken) apply when the holder is the defender. Abilities live in memory only — they reset on reload.</small></details>`;
+}
+function fighter(w){return state.chars[state[w+"Idx"]];}
+function toggleAbil(w,id){const c=fighter(w);c.active[id]=!c.active[id];state.lastRoll=null;render();}
+function giveAbil(w,id){if(!id)return;const c=fighter(w);grant(c,id);c.active[id]=true;state.lastRoll=null;render();}
+function dropAbil(w,id){const c=fighter(w);c.abil=c.abil.filter(x=>x!==id);delete c.active[id];state.lastRoll=null;render();}
+function editAbil(id){const x=catalog[id],m=x.mods;state.form={id,kind:x.kind,name:x.name,note:x.note,bypass:m.bypass,unless:m.unless.join(", "),dmgMult:m.dmgMult,flat:m.flat,acc:m.acc,dc:m.dc,taken:m.taken,ignoreFort:m.ignoreFort,grant:"none"};state.formOpen=true;render();}
+function saveAbil(){
+  const f=state.form;if(!f.name.trim()){alert("Give the ability a name.");return;}
+  const mods={dmgMult:nv(f.dmgMult,1),flat:nv(f.flat,0),ignoreFort:!!f.ignoreFort,bypass:f.bypass,unless:String(f.unless).split(",").map(s=>s.trim()).filter(Boolean),acc:nv(f.acc,0),dc:nv(f.dc,0),taken:nv(f.taken,1)};
+  let ab=f.id?catalog[f.id]:addAbility(f.kind,f.name.trim(),f.note,mods);
+  Object.assign(ab,{kind:f.kind,name:f.name.trim(),note:f.note,mods});
+  if(f.grant!=="none"){const c=fighter(f.grant);grant(c,ab.id);c.active[ab.id]=true;}
+  state.form=blankForm();state.formOpen=false;state.lastRoll=null;render();
+}
 
 function totalStats(c){return c.str+c.magStr+c.fort+c.agi+c.int+c.will+c.cha;}
 // Power is retained only as a display/reference value; it has ZERO effect on combat resolution or bands.
@@ -294,6 +416,7 @@ function defenseTarget(a,d,defType,spell){
     target += 0.5*statAdvantage(d.fort,usingSpell ? a.magStr : a.str);
   }
 
+  if(EFF) target+=EFF.dc-EFF.acc;   // ability modifiers
   return clamp(Math.round(target), 2, 19);
 }
 
@@ -301,11 +424,13 @@ function damageFor(a,d,spell,blocked=false,critical=false){
   const usingSpell=!!spell;
   // Physical damage is driven by Strength. Magical damage is driven by Magical Strength.
   // WP scales physical weapon use; it never replaces Strength.
-  const raw = usingSpell
+  const E=EFF||{dmg:1,flat:0,ign:false,taken:1};
+  if(E.dmg===0&&E.flat<=0) return 0;
+  const raw = (usingSpell
     ? a.magStr * ((spell.pow/4)||0.3)
-    : a.str * wpScale(a.wp);
+    : a.str * wpScale(a.wp)) * E.dmg;
 
-  const mitigated = Math.max(1, rnd(raw * fortMult(d.fort)));
+  const mitigated = Math.max(1, rnd(raw * (E.ign?1:fortMult(d.fort)) * E.taken) + E.flat);
   if(critical) return Math.max(1,rnd(mitigated*1.75));
   if(blocked) return Math.max(0,rnd(mitigated*0.35));
   return mitigated;
@@ -318,6 +443,7 @@ function counterDamage(a,d,perfect){
 }
 
 function bands(a,d,spell,defAction){
+  EFF=calcEff(a,d); state.lastEff=EFF;
   const defType = (defAction && defAction.type) || "passive";
   const target=defenseTarget(a,d,defType,spell);
   const usingSpell=!!spell;
@@ -357,18 +483,32 @@ function bands(a,d,spell,defAction){
   if(blockMax>missMax) out.push({name:"Block",min:missMax+1,max:Math.min(blockMax,crit-1),dDef:blockDmg,dAtk:0,note:"Fortitude absorbs most of the attack"});
   out.push({name:"Successful Hit",min:Math.max(blockMax+1,1),max:crit-1,dDef:hitDmg,dAtk:0,note:`${usingSpell?"Magical Strength":"Strength"} lands cleanly`});
   out.push({name:"Critical Hit",min:crit,max:20,dDef:critDmg,dAtk:0,note:"clean hit with maximum damage"});
-  return out.filter(b=>b.min<=b.max);
+  const fin=out.filter(b=>b.min<=b.max).map(b=>EFF.skip.has(b.name)?{...b,name:"Successful Hit",dDef:hitDmg,dAtk:0,note:"defense bypassed — the attack lands cleanly"}:b);
+  const merged=[]; fin.forEach(b=>{const p=merged[merged.length-1]; if(p&&p.name===b.name&&p.max+1===b.min) p.max=b.max; else merged.push({...b});});
+  return merged;
 }
 
 function el(id){return document.getElementById(id);}
+const tierMatch=c=>state.tierFilter==="all"||c.tier===state.tierFilter;
+const facMatch=c=>state.factionFilter==="all"||c.faction===state.factionFilter;
+const charMatch=c=>tierMatch(c)&&facMatch(c);
+function tierTitle(k){return tierTitles[k]||"Custom";}
+function tierOptions(){
+  const keys=[...new Set(state.chars.map(c=>c.tier))];
+  return `<option value="all" ${state.tierFilter=="all"?"selected":""}>All Tiers</option>`+
+    keys.map(k=>`<option value="${k}" ${state.tierFilter==k?"selected":""}>${esc(tierTitle(k))}</option>`).join("");
+}
 function factionOptions(){
-  const facs=[...new Set(state.chars.map(c=>c.faction))].sort();
+  const facs=[...new Set(state.chars.filter(tierMatch).map(c=>c.faction))].sort();
   return `<option value="all" ${state.factionFilter=="all"?"selected":""}>All Factions</option>`+
-    facs.map(f=>`<option value="${f}" ${state.factionFilter==f?"selected":""}>${f}</option>`).join("");
+    facs.map(f=>`<option value="${esc(f)}" ${state.factionFilter==f?"selected":""}>${esc(f)}</option>`).join("");
 }
 function charOptions(sel){
-  return state.chars.map((c,i)=>[c,i]).filter(([c])=>state.factionFilter=="all"||c.faction===state.factionFilter)
-    .map(([c,i])=>`<option value="${i}" ${i==sel?"selected":""}>${c.name}</option>`).join("");
+  const groups=[];
+  state.chars.forEach((c,i)=>{ if(!charMatch(c)) return;
+    let g=groups.find(x=>x.tier===c.tier); if(!g){g={tier:c.tier,items:[]};groups.push(g);} g.items.push([c,i]); });
+  return groups.map(g=>`<optgroup label="${esc(tierTitle(g.tier))}">`+
+    g.items.map(([c,i])=>`<option value="${i}" ${i==sel?"selected":""}>${esc(c.name)}</option>`).join("")+`</optgroup>`).join("");
 }
 function spellOptions(selIdx,noneLabel){
   const groups={};
@@ -404,19 +544,26 @@ function getDefAction(idx){
   return defActionsRaw[0];
 }
 function statCard(c,role){
-  return `<div class="panel"><b>${role}: ${c.name}</b>
-  <div class="faction">${c.faction}</div><small class="note">Source stats: Base Stats — combat values are not rescaled. Where the source gives N/A, a range, or an annotated value, the simulator preserves that source text and uses the numeric entry as the combat calculation value.</small>
+  const R=c.raw;
+  const links=c.links.length?`<div class="links">Wiki: ${c.links.map(([l,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l==="Wiki"?"Fandom page":l)}</a>`).join(" · ")}</div>`:"";
+  const hpBlock=c.maxHp===null
+    ? `<div style="margin-top:6px;font-size:.8rem;color:var(--sub)">HP: N/A — Base Stats lists no Max HP for this character. Damage taken so far: ${fmt(c.taken)}</div>`
+    : `<div style="margin-top:6px;font-size:.8rem;color:var(--sub)">HP ${fmt(c.curHp)}/${fmt(c.maxHp)}</div>
+  <div class="bar"><i style="width:${c.maxHp?clamp(c.curHp/c.maxHp*100,0,100):0}%"></i></div>`;
+  return `<div class="panel"><b>${role}: ${esc(c.name)}</b>
+  <div class="faction">${esc(c.faction)} · ${esc(tierTitle(c.tier))}</div>${links}
+  <small class="note">Every value below is shown exactly as written in Base Stats. Where the source gives N/A, a range, or an annotation, that text is preserved and the first number in it is used for combat maths.</small>
   <div class="statgrid">
-   <div><span>STR</span> ${fmt(c.str)}</div><div><span>Magical Str</span> ${fmt(c.magStr)}</div>
-   <div><span>Fortitude</span> ${fmt(c.fort)}</div><div><span>Agility</span> ${fmt(c.agi)}</div>
-   <div><span>INT</span> ${c.int}</div><div><span>Will</span> ${c.will}</div>
-   <div><span>Charisma</span> ${c.cha}</div><div><span>Weapon Prof.</span> ${c.wp}</div>
-   <div><span>Mana Talent</span> ${c.mt}</div><div><span>Mana Mastery</span> ${c.mm}</div>
-   <div><span>Max HP</span> ${fmt(c.maxHp)}</div>
+   <div><span>STR</span> ${esc(rawShow(R.str))}</div><div><span>Magical Str</span> ${esc(rawShow(R.magStr))}</div>
+   <div><span>Fortitude</span> ${esc(rawShow(R.fort))}</div><div><span>Agility</span> ${esc(rawShow(R.agi))}</div>
+   <div><span>INT</span> ${esc(rawShow(R.int))}</div><div><span>Will</span> ${esc(rawShow(R.will))}</div>
+   <div><span>Charisma</span> ${esc(rawShow(R.cha))}</div><div><span>Weapon Prof.</span> ${esc(rawShow(R.wp))}</div>
+   <div><span>Mana Talent</span> ${esc(rawShow(R.mt))}</div><div><span>Mana Mastery</span> ${esc(rawShow(R.mm))}</div>
+   <div><span>Max HP</span> ${esc(R.maxHp===""?"blank in source":R.maxHp)}</div><div><span>Max Sanity</span> ${esc(rawShow(R.maxSanity))}</div>
+   <div><span>Power</span> ${esc(rawShow(R.power))}</div>
   </div>
 
-  <div style="margin-top:6px;font-size:.8rem;color:var(--sub)">HP ${fmt(c.curHp)}/${fmt(c.maxHp)}</div>
-  <div class="bar"><i style="width:${clamp(c.curHp/c.maxHp*100,0,100)}%"></i></div>
+  ${hpBlock}
   <div style="margin-top:4px;font-size:.8rem;color:var(--sub)">MP ${c.curMp}/${c.mm}</div>
   <div class="bar mp"><i style="width:${c.mm?clamp(c.curMp/c.mm*100,0,100):0}%"></i></div>
   </div>`;
@@ -434,8 +581,10 @@ function render(){
 
   el("app").innerHTML=`
   <div class="panel">
-    <label>Filter by faction</label>
-    <select onchange="setFactionFilter(this.value)">${factionOptions()}</select>
+    <div class="row">
+      <div class="col"><label>Filter by tier</label><select onchange="setTierFilter(this.value)">${tierOptions()}</select></div>
+      <div class="col"><label>Filter by faction</label><select onchange="setFactionFilter(this.value)">${factionOptions()}</select></div>
+    </div>
     <div class="row" style="margin-top:6px">
       <div class="col"><label>Attacker</label><select onchange="setFighter('atk',this.value)">${charOptions(state.atkIdx)}</select></div>
       <div class="col"><label>Defender</label><select onchange="setFighter('def',this.value)">${charOptions(state.defIdx)}</select></div>
@@ -454,12 +603,20 @@ function render(){
     <div class="col">${statCard(d,"Defender")}</div>
   </div>
 
+  <h2>Abilities, weapons &amp; modifiers</h2>
+  <div class="row"><div class="col">${abilPanel(a,"Attacker","atk")}</div><div class="col">${abilPanel(d,"Defender","def")}</div></div>
+  ${abilForm()}
+  <div class="panel">
+    <div class="links" style="margin:0">Reference pages: ${abilityLinks.map(([l,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join(" · ")}</div>
+  </div>
+
   <h2>Minimum d20 roll per outcome</h2>
   <div class="panel">
   <table><tr><th>Outcome</th><th>Min roll</th><th>Range</th><th>Dmg→Def</th><th>Dmg→Atk</th></tr>
   ${bd.map(b=>`<tr id="row_${b.name.replace(/\s/g,'')}"><td>${b.name}</td><td><b>${b.min}</b></td><td>${b.min}–${b.max}</td>
     <td class="dmg">${fmt(b.dDef)}</td><td class="dmg">${fmt(b.dAtk)}</td></tr>`).join("")}
   </table>
+  ${state.lastEff.notes.length?`<div class="effnote">${state.lastEff.notes.map(esc).join("<br>")}</div>`:""}
   <details style="margin-top:8px"><summary>How this is calculated</summary>
   <div style="font-size:.78rem;color:var(--sub);margin-top:6px">
   <b>Power is display/reference only.</b> It is never substituted for a combat stat.
@@ -475,7 +632,11 @@ function render(){
   </ul>
   <b>Damage:</b> physical attacks use Strength × Weapon Proficiency scaling; spells use Magical Strength × spell multiplier. Fortitude then applies the Base Stats mitigation curve. Block deals 35% of the resulting damage; Critical deals 175%. Mana costs use Mana Mastery as the character's current maximum pool.
   <br><br>
-  <b>Base Stats fidelity:</b> character STR, Magical Strength, Fortitude, Agility, INT, Will, CHA, Weapon Proficiency, Mana Talent, and Mana Mastery are kept as their source values; no combat recalculation overwrites them.
+  <b>Ability modifiers:</b> tick an ability to make it active. Active offensive modifiers change the attacker's damage/accuracy and can turn defense outcomes into plain hits; active defensive modifiers change the defender's DC and damage taken. A bypass is cancelled when the defender has an active ability matching its "except" list.
+  <br><br>
+  <b>Base Stats fidelity:</b> STR, Magical Strength, Fortitude, Agility, INT, Will, CHA, Weapon Proficiency, Mana Talent, Mana Mastery, Max HP, Max Sanity and Power are kept exactly as written in Base Stats; no combat recalculation overwrites them.
+  <br><br>
+  <b>Max HP:</b> always the Max HP listed in Base Stats. Fortitude does not change HP totals — it only powers blocking and the damage-mitigation curve. Characters whose Max HP is N/A or blank in Base Stats have no HP pool; the simulator just tallies the damage they take.
   </div></details>
   </div>
 
@@ -498,10 +659,10 @@ function render(){
     <div id="addForm" class="row" style="margin-top:8px">
       <div class="col" style="flex-basis:160px"><label>name</label><input id="nf_name" type="text"></div>
       <div class="col" style="flex-basis:160px"><label>faction</label><input id="nf_faction" type="text" placeholder="Player"></div>
-      ${["str","magStr","fort","agi","int","will","cha","wp","mt","mm"].map(f=>`
-      <div class="col" style="flex-basis:110px"><label>${f}</label><input id="nf_${f}" type="number" value="0"></div>`).join("")}
+      ${["str","magStr","fort","agi","int","will","cha","wp","mt","mm","maxHp"].map(f=>`
+      <div class="col" style="flex-basis:110px"><label>${f}</label><input id="nf_${f}" type="number" value="${f==="maxHp"?220:0}"></div>`).join("")}
     </div>
-    <small class="note">str/magStr/fort/agi can be any size; int/will/cha/wp are 0–100; mt (mana talent) 0–40; mm (mana mastery) 0–100. Faction defaults to "Player" if left blank.</small><br>
+    <small class="note">str/magStr/fort/agi can be any size; int/will/cha/wp are 0–100; mt (mana talent) 0–40; mm (mana mastery) 0–100; maxHp is entered directly (Fortitude never changes it). Faction defaults to "Player" if left blank.</small><br>
     <button style="margin-top:8px" onclick="addChar()">Add character</button>
     </details>
   </div>
@@ -512,13 +673,17 @@ function render(){
 function setFighter(role,v){ state[role+"Idx"]=+v; state.lastRoll=null; render(); }
 function setSpell(v){ state.spellIdx=+v; state.lastRoll=null; render(); }
 function setDefAction(v){ state.defActionIdx=+v; state.lastRoll=null; render(); }
-function setFactionFilter(v){
-  state.factionFilter=v;
-  const matches=i=>state.factionFilter=="all"||state.chars[i].faction===state.factionFilter;
-  if(!matches(state.atkIdx)) state.atkIdx=state.chars.findIndex((c,i)=>matches(i));
-  if(!matches(state.defIdx)) state.defIdx=state.chars.findIndex((c,i)=>matches(i));
+function fixSelection(){
+  if(!charMatch(state.chars[state.atkIdx])) state.atkIdx=state.chars.findIndex(charMatch);
+  if(!charMatch(state.chars[state.defIdx])) state.defIdx=state.chars.findIndex(charMatch);
   state.lastRoll=null; render();
 }
+function setTierFilter(v){
+  state.tierFilter=v;
+  if(state.factionFilter!=="all" && !state.chars.some(charMatch)) state.factionFilter="all";
+  fixSelection();
+}
+function setFactionFilter(v){ state.factionFilter=v; fixSelection(); }
 function swap(){ [state.atkIdx,state.defIdx]=[state.defIdx,state.atkIdx]; state.lastRoll=null; render(); }
 function findBand(roll){ return state.lastBands.find(b=>roll>=b.min&&roll<=b.max); }
 
@@ -534,26 +699,33 @@ function checkRoll(){
 }
 function randomRoll(){ el("rollInput").value=Math.floor(Math.random()*20)+1; checkRoll(); }
 
+function dealTo(c,dmg){
+  if(c.maxHp===null){ c.taken+=dmg; }            // no listed Max HP: just tally damage taken
+  else c.curHp=clamp(c.curHp-dmg,0,c.maxHp);
+}
 function applyDamage(){
   if(!state.lastRoll) return;
   const b=findBand(state.lastRoll);
   const a=state.chars[state.atkIdx], d=state.chars[state.defIdx];
-  d.curHp=clamp(d.curHp-b.dDef,0,d.maxHp);
-  a.curHp=clamp(a.curHp-b.dAtk,0,a.maxHp);
+  dealTo(d,b.dDef);
+  dealTo(a,b.dAtk);
   if(state.spellIdx>=0){ const s=spellsRaw[state.spellIdx]; a.curMp=clamp(a.curMp-s.mp,0,a.mm); }
   const defAction = getDefAction(state.defActionIdx);
   if(defAction.type==="spell"){ d.curMp=clamp(d.curMp-defAction.spell.mp,0,d.mm); }
   render();
 }
 function resetHpMp(){
-  [state.atkIdx,state.defIdx].forEach(i=>{const c=state.chars[i]; c.curHp=c.maxHp; c.curMp=c.mm;});
+  [state.atkIdx,state.defIdx].forEach(i=>{const c=state.chars[i]; c.curHp=c.maxHp===null?0:c.maxHp; c.taken=0; c.curMp=c.mm;});
   render();
 }
 function addChar(){
   const g=f=>el("nf_"+f).value;
   if(!g("name")){ alert("Give the character a name."); return; }
-  const c=mkChar([g("name"),g("str"),g("magStr"),g("fort"),g("agi"),g("int"),g("will"),g("cha"),g("wp"),g("mt"),g("mm"),g("faction")]);
-  state.chars.push(c); state.atkIdx=state.chars.length-1; state.factionFilter="all"; render();
+  const will=parseNum(g("will"));
+  const raws=[g("str"),g("magStr"),g("fort"),g("agi"),g("int"),g("will"),g("cha"),g("wp"),g("mt"),g("mm"),g("maxHp"),String(100+will),"0"];
+  const c=mkChar("custom",g("name"),g("faction"),raws,[]);
+  c.raw.power=String(power(c));
+  state.chars.push(c); state.atkIdx=state.chars.length-1; state.factionFilter="all"; state.tierFilter="all"; render();
 }
 render();
 </script>
